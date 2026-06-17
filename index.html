@@ -159,9 +159,13 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
 
   useEffect(() => {
     if (ref.current) {
-      ref.current.scrollTop = selectedIndex * itemH;
+      // Sync scrollpositie bij externe (programmatische) wijziging van selectedIndex,
+      // bv. als de leeftijd-roller het gewicht automatisch aanpast. Niet vechten met
+      // de eigen scroll van de gebruiker: alleen bijsturen als 'ie niet al goed staat.
+      const current = Math.round(ref.current.scrollTop / itemH);
+      if (current !== selectedIndex) ref.current.scrollTop = selectedIndex * itemH;
     }
-  }, []);
+  }, [selectedIndex]);
 
   const handleScroll = () => {
     if (!ref.current) return;
@@ -331,7 +335,7 @@ const AGE_ITEMS = (() => {
 
 // Gewichtsitems voor trommelroller — prematuren/neonaten (0,5–2,5 kg) + 3 t/m 80 kg
 const WEIGHT_ITEMS = [
-  ...[0.5, 1, 1.5, 2, 2.5].map(v => ({ label: `${String(v).replace(".", ",")} kg`, value: v })),
+  ...[1.5, 2, 2.5].map(v => ({ label: `${String(v).replace(".", ",")} kg`, value: v })),
   ...Array.from({ length: 78 }, (_, i) => ({ label: `${i + 3} kg`, value: i + 3 })),
 ];
 const weightIndexFor = kg => Math.max(0, WEIGHT_ITEMS.findIndex(it => it.value === kg));
@@ -1171,55 +1175,6 @@ const ANTISTOLLING_REVERSAL = [
   { klasse: "Antitrombine", middelen: "Heparine, Fraxiparine, etc.", handelen: "Protamine." },
   { klasse: "Fibrinolytica / trombolytica / plasmineversterker", middelen: "Alteplase, urokinase.", handelen: "Geen specifiek antidotum." },
   { klasse: "Selectieve factor X- of IIa-antagonist (NOAC/DOAC)", middelen: "Factor X — apixaban, edoxaban, rivaroxaban. · Factor IIa — dabigatran.", handelen: "Actief kool. Apixaban / edoxaban / rivaroxaban — stollingsfactoren toedienen. Dabigatran — idarucizumab toedienen." },
-];
-
-const SECTIO_MEDS = [
-  {
-    naam: "Oxytocine (Syntocinon)", kleur: "#3498DB", stap: "Stap 1",
-    kort: "1e keuze. Laat de baarmoeder samentrekken zodat het bloeden stopt.",
-    dosering: [
-      "10 IE i.m. ná geboorte kind (vóór placenta)",
-      "Of 10 IE langzaam i.v.",
-      "Infuus: 10 IE in 500 mL NaCl 0,9% over 4 uur (≈ 40–45 druppels/min)",
-    ],
-    werkt: "i.v. < 1 min · i.m. 2–4 min",
-    cave: "Niet als snelle i.v.-bolus (hypotensie, reflextachycardie). Niet samen met misoprostol antepartum.",
-    bijw: "Hoofdpijn, misselijkheid, hartritmeveranderingen.",
-  },
-  {
-    naam: "Methergine", kleur: "#E67E22", stap: "Stap 2",
-    kort: "Extra baarmoedercontractie als oxytocine onvoldoende werkt.",
-    dosering: [
-      "0,2 mg (1 mL) i.m.",
-      "Of 0,1–0,2 mg langzaam i.v.",
-      "Herhalen elke 2–4 uur · max. 5× per 24 uur",
-    ],
-    werkt: "i.v. 30–60 sec · i.m. 2–5 min · duur 4–6 uur",
-    cave: "NIET bij hoge bloeddruk, vaatziekten of sepsis. Koel bewaren (2–8°).",
-    bijw: "Hoofdpijn, hoge bloeddruk, buikpijn, misselijkheid.",
-  },
-  {
-    naam: "Misoprostol (Cytotec)", kleur: "#9B59B6", stap: "Stap 2",
-    kort: "Prostaglandine die de baarmoeder laat samentrekken. Alternatief of aanvulling op methergine.",
-    dosering: [
-      "400–800 mcg eenmalig rectaal (of oraal)",
-      "Tablet 200 mcg",
-    ],
-    werkt: "max. effect na ± 30 min",
-    cave: "Niet bij ernstig astma.",
-    bijw: "Diarree, koorts/rillingen, misselijkheid, hoofdpijn.",
-  },
-  {
-    naam: "Tranexaminezuur (Cyclokapron)", kleur: "#C0392B", stap: "Bij veel bloedverlies",
-    kort: "Remt de afbraak van bloedstolsels → minder bloedverlies.",
-    dosering: [
-      "1–2 gram langzaam i.v. (1 mL/min)",
-      "Ampul 100 mg/mL · tablet 500 mg",
-    ],
-    werkt: "—",
-    cave: "Niet bij actieve trombose, subarachnoïdale bloeding of ernstige nierproblemen. Cave: tromboserisico.",
-    bijw: "Maag-darmklachten (misselijkheid, braken, diarree).",
-  },
 ];
 
 const SBAR = {
@@ -2118,7 +2073,6 @@ const SECTIONS = [
   { id: "bloedgas", label: "Bloedgas", icon: Icons.wind, color: "#3498DB" },
   { id: "kinder", label: "Kinderen", icon: Icons.baby, color: "#F39C12" },
   { id: "als", label: "ALS", icon: Icons.zap, color: "#C0392B" },
-  { id: "spoedingrepen", label: "Spoedingrepen", icon: Icons.clipboard, color: "#D35400" },
   { id: "spoed", label: "Noodknop", icon: Icons.alert, color: "#E74C3C" },
   { id: "team", label: "Team", icon: Icons.users, color: "#2C3E50" },
   { id: "epas", label: "EPA's", icon: Icons.book, color: "#1ABC9C" },
@@ -2130,13 +2084,14 @@ const SECTIONS = [
   { id: "buizen", label: "Buizen", icon: Icons.tube, color: "#E74C3C" },
   { id: "ecg", label: "ECG", icon: Icons.heart, color: "#E74C3C" },
   { id: "rooster", label: "Rooster", icon: Icons.calendar, color: "#9B59B6" },
+  { id: "cardio", label: "Cardio", icon: Icons.heart, color: "#C0392B" },
 ];
 
 // Logische groepering van de tabbladen voor het startscherm
 const SECTION_GROUPS = [
-  { titel: "Acute zorg", kleur: "#E74C3C", ids: ["abcde", "als", "spoed", "spoedingrepen"] },
+  { titel: "Acute zorg", kleur: "#E74C3C", ids: ["abcde", "als", "spoed"] },
   { titel: "Medicatie & rekenen", kleur: "#E67E22", ids: ["medicatie", "calculator"] },
-  { titel: "Kinderen", kleur: "#F39C12", ids: ["kinder"] },
+  { titel: "Specialismes", kleur: "#C0392B", ids: ["kinder", "cardio"] },
   { titel: "Checks & overdracht", kleur: "#2ECC71", ids: ["checks"] },
   { titel: "Metingen", kleur: "#3498DB", ids: ["bloedgas", "ecg"] },
   { titel: "Contact & locatie", kleur: "#2980B9", ids: ["tel", "ok", "plattegrond", "buizen", "isolatie"] },
@@ -3616,92 +3571,6 @@ function ZakkaartApp() {
         </div>
       </Collapse>
     </div>
-    );
-  };
-
-  const renderSpoedingrepen = () => {
-    const stappen = [
-      { n: "1", tekst: "Oxytocine 10 IE", kleur: "#3498DB" },
-      { n: "2", tekst: "Onvoldoende? → Methergine 0,2 mg i.m. óf Misoprostol 400–800 mcg", kleur: "#E67E22" },
-      { n: "3", tekst: "Veel bloedverlies? → Tranexaminezuur 1–2 g i.v.", kleur: "#C0392B" },
-    ];
-    return (
-      <div>
-        <Collapse title="Spoed sectio — HPP-medicatie" color="#D35400" defaultOpen={true}>
-          <div style={{ fontSize: "11px", color: "#666", marginBottom: "12px", lineHeight: 1.5 }}>
-            HPP = fluxus / haemorrhagia postpartum (te veel bloedverlies na de bevalling).
-          </div>
-
-          {/* Snelkaart */}
-          <div style={{
-            background: "rgba(211,84,0,0.08)",
-            border: "1px solid rgba(211,84,0,0.2)",
-            borderRadius: "12px",
-            padding: "12px",
-            marginBottom: "16px",
-          }}>
-            <div style={{ fontWeight: 700, color: "#D35400", fontSize: "13px", marginBottom: "10px" }}>Snelkaart — volgorde</div>
-            {stappen.map((s, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: i < stappen.length - 1 ? "8px" : 0 }}>
-                <div style={{
-                  flexShrink: 0, width: "22px", height: "22px", borderRadius: "50%",
-                  background: s.kleur, color: "#fff", fontWeight: 700, fontSize: "12px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>{s.n}</div>
-                <div style={{ fontSize: "13px", color: "#eee", lineHeight: 1.4 }}>{s.tekst}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Per middel */}
-          {SECTIO_MEDS.map((m, i) => (
-            <div key={i} style={{
-              background: `${m.kleur}0d`,
-              border: `1px solid ${m.kleur}30`,
-              borderLeft: `4px solid ${m.kleur}`,
-              borderRadius: "12px",
-              padding: "12px 14px",
-              marginBottom: "12px",
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-                <div style={{ fontWeight: 700, color: m.kleur, fontSize: "15px" }}>{m.naam}</div>
-                <div style={{
-                  flexShrink: 0, fontSize: "10px", fontWeight: 700, color: m.kleur,
-                  background: `${m.kleur}22`, borderRadius: "20px", padding: "3px 8px",
-                  textTransform: "uppercase", letterSpacing: "0.5px",
-                }}>{m.stap}</div>
-              </div>
-
-              <div style={{ fontSize: "12px", color: "#bbb", lineHeight: 1.5, marginBottom: "10px" }}>{m.kort}</div>
-
-              <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#888", marginBottom: "4px" }}>Dosering</div>
-              <ul style={{ margin: "0 0 10px 0", padding: 0, listStyle: "none" }}>
-                {m.dosering.map((d, j) => (
-                  <li key={j} style={{ fontSize: "14px", color: "#fff", fontWeight: 600, lineHeight: 1.5, paddingLeft: "14px", position: "relative", marginBottom: "2px" }}>
-                    <span style={{ position: "absolute", left: 0, color: m.kleur }}>•</span>{d}
-                  </li>
-                ))}
-              </ul>
-
-              {m.werkt !== "—" && (
-                <div style={{ fontSize: "11px", color: "#999", marginBottom: "10px" }}>⏱ Werkt: {m.werkt}</div>
-              )}
-
-              <div style={{
-                background: "rgba(243,156,18,0.08)", border: "1px solid rgba(243,156,18,0.2)",
-                borderRadius: "8px", padding: "8px 10px", marginBottom: "8px",
-                fontSize: "12px", color: "#ddd", lineHeight: 1.5,
-              }}>
-                <span style={{ color: "#F39C12", fontWeight: 700 }}>⚠ Cave:&nbsp;</span>{m.cave}
-              </div>
-
-              <div style={{ fontSize: "11px", color: "#888", lineHeight: 1.5 }}>
-                <span style={{ fontWeight: 600 }}>Bijwerkingen:</span> {m.bijw}
-              </div>
-            </div>
-          ))}
-        </Collapse>
-      </div>
     );
   };
 
@@ -5896,6 +5765,206 @@ function ZakkaartApp() {
     );
   };
 
+  const renderCardio = () => {
+    const KLEUR = "#C0392B";
+    const sub = (t) => (
+      <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1.2px", color: KLEUR, fontWeight: 700, margin: "14px 0 8px" }}>{t}</div>
+    );
+    const li = (items, kleur = KLEUR) => (
+      <ul style={{ margin: "0 0 4px", paddingLeft: "18px", fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
+        {items.map((x, i) => <li key={i} dangerouslySetInnerHTML={{ __html: x }} />)}
+      </ul>
+    );
+    const kader = (kleur, titel, body) => (
+      <div style={{
+        background: `${kleur}12`, border: `1px solid ${kleur}40`, borderLeft: `4px solid ${kleur}`,
+        borderRadius: "10px", padding: "12px", marginBottom: "10px",
+      }}>
+        <div style={{ fontWeight: 700, color: kleur, fontSize: "14px", marginBottom: "8px" }}>{titel}</div>
+        {body}
+      </div>
+    );
+
+    const KLAARZET_MEDS = [
+      { m: "Sufentanil", c: "5 µg/ml" }, { m: "Lidocaïne 1%", c: "10 mg/ml" },
+      { m: "Midazolam", c: "1 mg/ml" }, { m: "Esketamine", c: "5 mg/ml" },
+      { m: "Rocuronium", c: "10 mg/ml" }, { m: "Dexamethason", c: "4 / 20 mg/ml" },
+      { m: "Cefazoline", c: "2 g / 10 ml" }, { m: "Fenylefrine", c: "100 µg/ml" },
+      { m: "Efedrine", c: "5 mg/ml" }, { m: "Atropine", c: "0,5 mg" },
+      { m: "Tranexaminezuur", c: "100 mg/ml" }, { m: "Heparine", c: "50 mg (5000 IE)/ml" },
+      { m: "Noradrenaline (pomp)", c: "100 µg/ml" }, { m: "Sufentanil (pomp)", c: "5 µg/ml" },
+    ];
+    const KLAARZET_OVERLEG = [
+      { m: "Milrinone", c: "200 µg/ml (AMC)" }, { m: "Dobutamine", c: "5 mg/ml (AMC) / 4 mg/ml (VU)" },
+      { m: "Dopamine", c: "—" }, { m: "Propofol (pomp)", c: "10 mg/ml (AMC) / 20 mg/ml (VU)" },
+    ];
+    const STAPPEN = [
+      { t: "Voor incisie", d: "Inleiding, lijnen prikken (arterie + centraal veneus), TEE plaatsen, blaaskatheter + temperatuur, antibioticaprofylaxe (cefazoline)." },
+      { t: "Incisie → ECC", d: "Sternotomie, prepareren. Heparine geven vóór canulatie, ACT controleren (streef > 450 s)." },
+      { t: "Aan de ECC (bypass)", d: "Perfusionist neemt circulatie over. Beademing aanpassen/stoppen, hoofd/pupillen controleren, TEE freeze, urine af." },
+      { t: "Einde operatie", d: "Ontluchten, opwarmen > 36 °C, ritme/pacing, van de pomp af, protamine geven, hemostase, sluiten." },
+      { t: "Transport & overdracht IC", d: "Stabiliseren, pompen mee, gemonitord transport, gestructureerde overdracht aan IC." },
+    ];
+    const INGREPEN = [
+      { t: "CABG — coronaire bypass", stuk: "Eén of meer kransslagaders (coronairen) zijn vernauwd of verstopt door aderverkalking → de hartspier krijgt te weinig zuurstof (angina pectoris, infarctrisico).", stappen: ["Sternotomie", "Bypass-vaten oogsten (a. mammaria interna, v. saphena of a. radialis)", "Meestal aan de ECC met hart stilgelegd; soms off-pump (OPCAB) op het kloppende hart", "Omleiding(en) hechten vóór en achter de vernauwing", "Van de pomp af, ontluchten, sluiten"] },
+      { t: "Aortaklep — vervangen (AKV) of sparen (David/VSRR)", stuk: "Aortaklep is vernauwd (stenose) of lekt (insufficiëntie) — door verkalking, aangeboren afwijking of een verwijde aortawortel.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Aorta openen, zieke klep beoordelen (TEE)", "AKV: vervangen door kunstklep (mechanisch of biologisch)", "Klepsparend (David/VSRR): aortawortel/ascendens vervangen door buisprothese met behoud van de eigen klepzegels", "Ontluchten, van de pomp af, sluiten"] },
+      { t: "Mitralisklep — plastiek (MKP) of vervanging (MKV)", stuk: "Mitralisklep lekt (insufficiëntie) of is vernauwd (stenose) → bloed stroomt terug richting de longen, kortademigheid.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Linker boezem openen, klep beoordelen via TEE", "Voorkeur: plastiek — eigen klep repareren met ring/hechtingen (MKP)", "Anders vervanging door een kunstklep (MKV)", "Lucht eruit, van de pomp af, sluiten"] },
+      { t: "Aorta ascendens / boog (incl. Bentall)", stuk: "Verwijding (aneurysma) of scheur in de wand (dissectie) van de aorta ascendens of boog. Een dissectie is acuut → spoed-OK.", stappen: ["Open hart operatie, aan de ECC", "Boogchirurgie: vaak diepe koeling + tijdelijke circulatiestilstand, cerebrale bescherming (NIRS)", "Aangedaan deel vervangen door buisprothese", "Bentall: buisprothese mét kunstklep + coronairen opnieuw aanhechten", "Opwarmen, ontluchten, van de pomp af"] },
+      { t: "Aorta descendens (open of EVAR)", stuk: "Aneurysma van de afdalende aorta (operatie meestal bij doorsnede > 5,5 cm) — risico op ruptuur.", stappen: ["Open: via thoracotomie/laparotomie het aangedane deel vervangen (bij TAAA spinaalkatheter ter bescherming van het ruggenmerg)", "EVAR: stentprothese via de lies in de aorta plaatsen (minimaal invasief)"] },
+      { t: "Longchirurgie (VATS)", stuk: "Longtumor, -afwijking of pneumothorax; een deel of de hele long moet eruit.", stappen: ["Meestal thoracoscopisch (VATS)", "Één-long ventilatie via dubbellumentube of bronchusblocker", "Wigexcisie / segment / lobectomie, of hele long (pneumectomie)"] },
+      { t: "Mini Maze (boezemfibrilleren)", stuk: "Atriumfibrilleren — abnormale elektrische circuits, meestal rond de longvenen.", stappen: ["VATS met één-long ventilatie", "Ablatie (branden): een ring littekenweefsel rond de longvenen om de circuits te blokkeren", "Linker hartoor verwijderen (bron van AF + minder kans op trombus/beroerte)"] },
+      { t: "Congenitaal (ASD / VSD)", stuk: "Aangeboren hartafwijking, bv. een gat tussen de boezems (ASD) of kamers (VSD).", stappen: ["Aan de ECC", "Defect sluiten (hechten of patch)", "Vaak grotere kinderen/volwassenen — eigen congenitaal protocol is leidend"] },
+      { t: "E-CPR / ECMO (spoed)", stuk: "Circulatiestilstand — hart en longen vallen uit.", stappen: ["Op de shockroom of IC een ECMO plaatsen (canules in de grote vaten)", "ECMO neemt circulatie en oxygenatie tijdelijk over", "Volg het eigen spoed-/ECMO-protocol"] },
+    ];
+    const ECC_FASES = [
+      { f: "Pre-bypass", kleur: "#E67E22", items: ["Heparine gegeven, <strong>ACT > 450 s</strong>", "Canulatie gecontroleerd", "TEE freeze", "Urine af, stop extra volume"] },
+      { f: "Aan de bypass", kleur: "#3498DB", items: ["Inspectie hoofd / nek / pupillen", "Beademing halveren bij volle flow", "Bij aortaklem: beademing stop, 5 cmH₂O PEEP, FiO₂ 21%"] },
+      { f: "Van de bypass af", kleur: "#2ECC71", items: ["Lucht verwijderen (80% O₂, Trendelenburg)", "Kerntemperatuur > 36 °C", "Ritme / pacing op orde", "Ca²⁺ en K⁺ normaal", "Vulling op peil, Hb streef ± 6,0 mmol/l", "Protamine standby, TXA loopt"] },
+    ];
+    const HEPARINE = [
+      { m: "Heparine (ECC)", w: "300 IE/kg — streef ACT > 450 s" },
+      { m: "Protamine", w: "0,8 : 1 (protamine : heparine); ACT-controle 5–10 min na toediening" },
+      { m: "Tranexaminezuur (TXA)", w: "10 mg/kg oplaaddosis vóór ECC, daarna 1–4 mg/kg/u" },
+      { m: "Transfusietrigger", w: "Hb < 4 mmol/l: transfunderen · > 6 mmol/l: geen indicatie" },
+    ];
+    const KLEPPEN = [
+      { k: "Aortastenose (AS)", doel: "Vol, normofrequent/traag ritme, sinusritme behouden, hoge SVR. <strong>Vermijd tachycardie en hypotensie.</strong>" },
+      { k: "Aortainsufficiëntie (AI)", doel: "\"Fast, full & forward\" — iets sneller ritme, goed gevuld, lage SVR (vlot vooruit pompen)." },
+      { k: "Mitralisstenose (MS)", doel: "Normaal tot laag ritme, sinusritme, vermijd tachycardie. <strong>Cave longoedeem.</strong>" },
+      { k: "Mitralisinsufficiëntie (MI)", doel: "\"Fast, full & forward\" — lage SVR zodat het hart vooruit pompt i.p.v. terug." },
+    ];
+    const AFKORTINGEN = [
+      ["ABGA", "arteriële bloedgasanalyse"], ["ACT", "activated clotting time"], ["AKV", "aortaklepvervanging"],
+      ["AoX", "aortaklem (cross-clamp)"], ["APC", "atriale premature contractie"], ["APTT", "geactiveerde partiële tromboplastinetijd"],
+      ["ASD", "atriumseptumdefect"], ["BVAD", "biventricular assist device"], ["CABG", "coronary artery bypass graft"],
+      ["CCH", "cardiochirurgie"], ["CI", "cardiac index"], ["CO", "cardiac output"], ["CVD", "centraalveneuze druk"],
+      ["ECC", "extracorporele circulatie (hart-longmachine)"], ["EF", "ejectiefractie"], ["FiO₂", "ingeademde zuurstoffractie"],
+      ["FFP", "fresh frozen plasma"], ["HLM", "hart-longmachine"], ["IC", "intensive care"], ["INR", "international normalized ratio"],
+      ["LVAD", "left ventricular assist device"], ["MKP", "mitralisklepplastiek"], ["MKV", "mitralisklepvervanging"],
+      ["NIBP", "niet-invasieve bloeddruk"], ["OPCAB", "off-pump coronary artery bypass"], ["PAP", "pulmonalisarteriedruk"],
+      ["PCWP", "pulmonary capillary wedge pressure"], ["PEEP", "positieve eind-expiratoire druk"],
+      ["RVAD", "right ventricular assist device"], ["TEE", "transoesofageale echocardiografie"], ["VF", "ventrikelfibrilleren"], ["VSD", "ventrikelseptumdefect"],
+    ];
+    const HULPNUMMERS = [
+      { r: "Anesthesie", n: "81-59663" }, { r: "Anesthesiemedewerker", n: "81-59571" },
+      { r: "Perfusie", n: "81-57388" }, { r: "OK", n: "81-59152" }, { r: "Chirurg", n: "81-58683" },
+    ];
+
+    const medRow = (m, c) => (
+      <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <span style={{ fontWeight: 600, color: "#fff", fontSize: "13px" }}>{m}</span>
+        <span style={{ fontFamily: "'JetBrains Mono', monospace", color: KLEUR, fontSize: "12px", textAlign: "right" }}>{c}</span>
+      </div>
+    );
+
+    return (
+      <div>
+        <Collapse title="Klaarzetlijst cardio" color={KLEUR}>
+          {sub("Positionering")}
+          {li([
+            "Rugligging, armen langs het lichaam in cardioschelpen met gelpads",
+            "Tafel neutraal, intubatiekussen onder hoofd",
+            "Bair Hugger / warmtedeken",
+          ])}
+          {sub("Monitoring")}
+          {li([
+            "NIBP, pulsoximetrie, 5-leads ECG",
+            "Invasieve bloeddruk + CVD",
+            "Capnografie",
+            "Temperatuur (oraal + rectaal/blaas)",
+            "NIRS (cerebrale oximetrie)",
+          ])}
+          {sub("Lijnen")}
+          {li([
+            "Perifeer infuus ≥ 18 G — voorkeur rechterarm",
+            "Arterielijn — voorkeur linker a. radialis, onder echo",
+            "Centraalveneuze lijn met side-port (hands-off)",
+          ])}
+          {sub("Medicatie standaard")}
+          {KLAARZET_MEDS.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
+          {sub("In overleg klaarzetten")}
+          {KLAARZET_OVERLEG.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
+        </Collapse>
+
+        <Collapse title="Stappen van de operatie" color="#E67E22">
+          {STAPPEN.map((s, i) => (
+            <div key={i} style={{
+              background: "#E67E2212", border: "1px solid #E67E2240", borderLeft: "4px solid #E67E22",
+              borderRadius: "10px", padding: "12px", marginBottom: "10px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <div style={{ background: "#E67E22", color: "#fff", width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "12px", flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ fontWeight: 700, color: "#E67E22", fontSize: "14px" }}>{s.t}</div>
+              </div>
+              <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>{s.d}</div>
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="Cardio-ingrepen" color="#C0392B">
+          {INGREPEN.map((ing, i) => (
+            <div key={i} style={{
+              background: `${KLEUR}10`, border: `1px solid ${KLEUR}35`, borderLeft: `4px solid ${KLEUR}`,
+              borderRadius: "10px", padding: "12px", marginBottom: "12px",
+            }}>
+              <div style={{ fontWeight: 700, color: KLEUR, fontSize: "14px", marginBottom: "8px" }}>{ing.t}</div>
+              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", color: "#E74C3C", fontWeight: 700, marginBottom: "3px" }}>Aandoening</div>
+              <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6, marginBottom: "10px" }}>{ing.stuk}</div>
+              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", color: "#2ECC71", fontWeight: 700, marginBottom: "3px" }}>Ingreep</div>
+              <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
+                {ing.stappen.map((s, j) => <li key={j}>{s}</li>)}
+              </ul>
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="ECC-checklist (aan/van de pomp)" color="#3498DB">
+          {ECC_FASES.map((f, i) => kader(f.kleur, f.f, li(f.items, f.kleur)))}
+        </Collapse>
+
+        <Collapse title="Heparine · ACT · protamine · TXA" color="#9B59B6">
+          {HEPARINE.map((x, i) => (
+            <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", marginBottom: "3px" }}>{x.m}</div>
+              <div style={{ fontSize: "12px", color: "#bbb", lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: x.w }} />
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="Klepafwijkingen — hemodynamische doelen" color="#16A085">
+          <div style={{ fontSize: "11px", color: "#888", fontStyle: "italic", marginBottom: "10px" }}>
+            Algemene leerregels — patiëntspecifiek beleid volgt de anesthesioloog.
+          </div>
+          {KLEPPEN.map((x, i) => kader("#16A085", x.k, (
+            <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: x.doel }} />
+          )))}
+        </Collapse>
+
+        <Collapse title="Afkortingen cardio" color="#2980B9">
+          {AFKORTINGEN.map((x, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#2980B9", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>{x[0]}</span>
+              <span style={{ color: "#ccc", fontSize: "12px", textAlign: "right" }}>{x[1]}</span>
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="⚠ Spoed — verwijzing" color="#E74C3C">
+          <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6, marginBottom: "12px" }}>
+            Bij een acute situatie: volg de <strong style={{ color: "#E74C3C" }}>fysieke spoedbundel cardiochirurgie</strong> op de OK (of via QR-code). Deze app vervangt de bundel niet — bij calamiteit altijd de bundel + zorgteam erbij.
+          </div>
+          {sub("Hulpnummers")}
+          {HULPNUMMERS.map((x, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontWeight: 600, color: "#fff", fontSize: "13px" }}>{x.r}</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#E74C3C", fontSize: "13px" }}>{x.n}</span>
+            </div>
+          ))}
+        </Collapse>
+      </div>
+    );
+  };
+
     const renderContent = () => {
     switch (activeSection) {
       case "nood": return renderNood();
@@ -5907,7 +5976,6 @@ function ZakkaartApp() {
       case "bloedgas": return renderBloedgas();
       case "kinder": return renderKinder();
       case "als": return renderALS();
-      case "spoedingrepen": return renderSpoedingrepen();
       case "spoed": return renderSpoed();
       case "team": return renderTeam();
       case "epas": return renderEPAs();
@@ -5919,6 +5987,7 @@ function ZakkaartApp() {
       case "buizen": return renderBuizen();
       case "ecg": return renderECG();
       case "rooster": return renderRooster();
+      case "cardio": return renderCardio();
       default: return null;
     }
   };
