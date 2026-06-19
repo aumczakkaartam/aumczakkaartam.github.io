@@ -84,7 +84,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <script type="text/babel">
-    const { useState, useMemo, useRef, useEffect } = React;
+    const { useState, useMemo, useRef, useEffect, useContext } = React;
+
+// Context waarmee een zoekresultaat de juiste Collapse automatisch openklapt + erheen scrollt
+const CollapseTargetCtx = React.createContext(null);
+const normTitle = s => (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 
 // ============================================================
@@ -93,8 +97,21 @@
 
 function Collapse({ title, color = "#fff", children, defaultOpen = false, icon = null }) {
   const [open, setOpen] = useState(defaultOpen);
+  const target = useContext(CollapseTargetCtx);
+  const elRef = useRef(null);
+  useEffect(() => {
+    if (target && target.title && normTitle(title) === normTitle(target.title)) {
+      setOpen(true);
+      const t = setTimeout(() => {
+        if (elRef.current && elRef.current.scrollIntoView) {
+          elRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 90);
+      return () => clearTimeout(t);
+    }
+  }, [target]);
   return (
-    <div style={{
+    <div ref={elRef} style={{
       marginBottom: "12px",
       borderRadius: "12px",
       overflow: "hidden",
@@ -2130,6 +2147,7 @@ function ZakkaartApp() {
   const [plattegrondTab, setPlattegrondTab] = useState("amc");
   const [plattegrondZoek, setPlattegrondZoek] = useState("");
   const [laGewicht, setLaGewicht] = useState(70);
+  const [collapseTarget, setCollapseTarget] = useState(null);
 
   // Calculator trommelroller state
   const defaultLeeftijdIdx = AGE_ITEMS.findIndex(a => a.value === 2) || 13;
@@ -2170,197 +2188,6 @@ function ZakkaartApp() {
       setSelectedPerson(null);
     }
   }, [activeSection]);
-
-  // Flatten all searchable text
-  const searchResults = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return null;
-    const q = searchQuery.toLowerCase();
-    const results = [];
-
-    // Search phone numbers
-    const searchPhones = (list, loc) => {
-      list.forEach(({ naam, nummer }) => {
-        if (naam.toLowerCase().includes(q) || nummer.toLowerCase().includes(q)) {
-          results.push({ section: "tel", loc, text: `${naam}: ${nummer}`, cat: `Telefoon ${loc.toUpperCase()}` });
-        }
-      });
-    };
-    searchPhones(TELEFOON_AMC.vast, "amc");
-    searchPhones(TELEFOON_AMC.sein, "amc");
-    searchPhones(TELEFOON_AMC.dienstAM, "amc");
-    searchPhones(TELEFOON_AMC.dienstAnes, "amc");
-    searchPhones(TELEFOON_VUMC.vast, "vumc");
-    searchPhones(TELEFOON_VUMC.sein, "vumc");
-    searchPhones(TELEFOON_VUMC.dienstAM, "vumc");
-    searchPhones(TELEFOON_VUMC.dienstAnes, "vumc");
-
-    // Search OK's
-    OK_SPECIALISMEN.forEach(({ ok, spec }) => {
-      if (ok.toLowerCase().includes(q) || spec.toLowerCase().includes(q)) {
-        results.push({ section: "ok", text: `OK ${ok}: ${spec}`, cat: "OK's" });
-      }
-    });
-
-    // Search medicatie
-    MEDICATIE_STANDAARD.forEach(({ med, groep, inductie, onderhoud }) => {
-      if ([med, groep, inductie, onderhoud].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "medicatie", text: `${med} — ${inductie} / ${onderhoud}`, cat: "Medicatie" });
-      }
-    });
-
-    // Search ABCDE
-    ABCDE.forEach(item => {
-      const all = [...item.observaties, ...item.risicos, ...item.acties, item.titel, item.subtitel];
-      if (all.some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "abcde", text: `${item.letter} – ${item.titel}: ${item.subtitel}`, cat: "ABCDE" });
-      }
-    });
-
-    // Search team
-    LEIDINGGEVENDEN.forEach(p => {
-      if ([p.naam, p.rol, p.email].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "team", text: `${p.naam} — ${p.rol}`, cat: "Team", personData: p });
-      }
-    });
-
-    // Search isolatie
-    ISOLATIE_VORMEN.forEach(iv => {
-      if ([iv.type, iv.voorbeelden, iv.medewerker].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "isolatie", text: `${iv.type}: ${iv.voorbeelden}`, cat: "Isolatie" });
-      }
-    });
-
-    // Search calculator meds
-    KINDER_CALC_MEDS.forEach(m => {
-      if ([m.med, m.categorie].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "calculator", text: `${m.med} — ${m.range}`, cat: "Kinderdosering" });
-      }
-    });
-
-    // Search dermatomen
-    DERMATOOM_LANDMARKS.forEach(d => {
-      if ([d.niveau, d.landmark].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "dermatomen", text: `${d.niveau}: ${d.landmark}`, cat: "Dermatomen" });
-      }
-    });
-
-    // Search zenuwblokkades
-    ZENUWBLOKKADES.forEach(cat => {
-      cat.blokkades.forEach(b => {
-        if ([b.naam, b.zenuw, b.gebied, b.dermatomen].some(s => s.toLowerCase().includes(q))) {
-          results.push({ section: "dermatomen", text: `${b.naam} (${b.dermatomen})`, cat: "Zenuwblokkades" });
-        }
-      });
-    });
-
-    // Search vaatstelsel
-    VAATSTELSEL.forEach(cat => {
-      cat.vaten.forEach(v => {
-        if ([v.naam, v.klinisch, v.vertakking].some(s => s.toLowerCase().includes(q))) {
-          results.push({ section: "vaatstelsel", text: `${v.naam}: ${v.klinisch}`, cat: "Vaatstelsel" });
-        }
-      });
-    });
-
-    // Search noodmedicatie
-    NOODMEDICATIE.forEach(({ med, dosering, indicatie }) => {
-      if ([med, dosering, indicatie].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "nood", text: `${med} — ${dosering}`, cat: "Noodmedicatie" });
-      }
-    });
-
-    // Search kindermedicatie
-    KINDERMEDICATIE.forEach(({ med, inductie, onderhoud }) => {
-      if ([med, inductie, onderhoud].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "kinder", text: `${med} — ${inductie}`, cat: "Kindermedicatie" });
-      }
-    });
-
-    // Search bloedgas & beademing
-    BLOEDGAS.forEach(({ param, waarde }) => {
-      if ([param, waarde].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "bloedgas", text: `${param}: ${waarde}`, cat: "Bloedgas" });
-      }
-    });
-    BEADEMING.forEach(({ param, waarde }) => {
-      if ([param, waarde].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "bloedgas", text: `${param}: ${waarde}`, cat: "Beademing" });
-      }
-    });
-
-    // Search ROTEM
-    ROTEM_PROTOCOL.forEach(({ titel, triggers }) => {
-      triggers.forEach(t => {
-        const crit = t.criterium.replace(/<[^>]+>/g, "");
-        if ([titel, crit, t.actie].some(s => s.toLowerCase().includes(q))) {
-          results.push({ section: "bloedgas", text: `ROTEM ${titel}: ${t.actie}`, cat: "ROTEM" });
-        }
-      });
-    });
-
-    // Search checklists (Checks-tab)
-    SALTMOVIES.forEach(({ letter, item, uitleg }) => {
-      if ([item, uitleg].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "checks", text: `SALTMOVIES ${letter} – ${item}`, cat: "Checks" });
-      }
-    });
-    LEMON.forEach(({ letter, tekst, uitleg }) => {
-      if ([tekst, uitleg].some(s => s.toLowerCase().includes(q))) {
-        results.push({ section: "checks", text: `LEMON ${letter} – ${tekst}`, cat: "Checks" });
-      }
-    });
-    Object.entries(SBAR).forEach(([key, items]) => {
-      items.forEach(item => {
-        if (item.toLowerCase().includes(q)) {
-          results.push({ section: "checks", text: `SBAR (${key}): ${item}`, cat: "Checks" });
-        }
-      });
-    });
-    VEILIGHEIDSAFSPRAKEN.forEach(v => {
-      if (v.toLowerCase().includes(q)) {
-        results.push({ section: "checks", text: v, cat: "Veiligheidsafspraak" });
-      }
-    });
-
-    // Search buizen
-    BUISSOORTEN.forEach(({ code, kenmerk, anticoagulans, doel }) => {
-      if ([code, kenmerk, anticoagulans, doel].some(s => s && s.toLowerCase().includes(q))) {
-        results.push({ section: "buizen", text: `${code} (${kenmerk}): ${doel}`, cat: "Buizen" });
-      }
-    });
-
-    // Tabblad-namen & synoniemen — zodat elk tabblad vindbaar is
-    const SYNONIEMEN = {
-      tel: ["telefoon", "nummer", "bellen", "sein", "dienst", "contact"],
-      ok: ["operatiekamer", "schiphol", "specialisme"],
-      abcde: ["primary survey", "acuut", "benadering"],
-      medicatie: ["medicijn", "geneesmiddel", "dosering"],
-      checks: ["checklist", "veiligheid", "overdracht", "saltmovies", "lemon", "sbar"],
-      bloedgas: ["bga", "rotem", "stolling", "beademing"],
-      kinder: ["kind", "pediatrie", "baby", "neonaat"],
-      als: ["reanimatie", "cpr", "ritme", "advanced life support"],
-      spoed: ["noodknop", "spoedbundel", "luchtwegkar", "mlk"],
-      team: ["vertrouwenspersoon", "peersupport", "leidinggevende"],
-      epas: ["epa", "supervisie", "opleiding", "bekwaam"],
-      isolatie: ["isolatie", "besmetting", "hygiene", "biohazard"],
-      calculator: ["rekenen", "gewicht", "tube", "dosis", "vocht"],
-      dermatomen: ["dermatoom", "zenuw", "blokkade", "anatomie"],
-      vaatstelsel: ["vaten", "arterie", "ader", "anatomie"],
-      plattegrond: ["kaart", "ingang", "gebouw", "route", "locatie"],
-      buizen: ["buis", "buisje", "buizenpost", "afnamebuis", "lab"],
-      ecg: ["ecg", "ritme", "hartfilm"],
-      rooster: ["dienst", "vakantie", "verlof", "joker", "balansverlof", "ows", "atw", "ruilen"],
-    };
-    SECTIONS.forEach(s => {
-      if (s.id === "nood") return;
-      const trefwoorden = [s.label, ...(SYNONIEMEN[s.id] || [])];
-      if (trefwoorden.some(t => t.toLowerCase().includes(q))) {
-        results.push({ section: s.id, text: `Open tabblad: ${s.label}`, cat: "Tabblad" });
-      }
-    });
-
-    return results.length > 0 ? results : [];
-  }, [searchQuery]);
 
   // ---- Render helpers ----
 
@@ -6055,32 +5882,118 @@ function ZakkaartApp() {
     );
   };
 
-    const renderContent = () => {
-    switch (activeSection) {
-      case "nood": return renderNood();
-      case "tel": return renderTelefoonTab();
-      case "ok": return renderOK();
-      case "abcde": return renderABCDE();
-      case "medicatie": return renderMedicatie();
-      case "checks": return renderChecks();
-      case "bloedgas": return renderBloedgas();
-      case "kinder": return renderKinder();
-      case "als": return renderALS();
-      case "spoed": return renderSpoed();
-      case "team": return renderTeam();
-      case "epas": return renderEPAs();
-      case "isolatie": return renderIsolatie();
-      case "calculator": return renderCalculator();
-      case "dermatomen": return renderDermatomen();
-      case "vaatstelsel": return renderVaatstelsel();
-      case "plattegrond": return renderPlattegrond();
-      case "buizen": return renderBuizen();
-      case "ecg": return renderECG();
-      case "rooster": return renderRooster();
-      case "cardio": return renderCardio();
-      default: return null;
-    }
+  // Eén centrale map id -> render-functie. Een nieuw tabblad hier toevoegen
+  // maakt het automatisch zowel rendervaar ALS volledig doorzoekbaar.
+  const SECTION_RENDERERS = {
+    nood: renderNood, tel: renderTelefoonTab, ok: renderOK, abcde: renderABCDE,
+    medicatie: renderMedicatie, checks: renderChecks, bloedgas: renderBloedgas,
+    kinder: renderKinder, als: renderALS, spoed: renderSpoed, team: renderTeam,
+    epas: renderEPAs, isolatie: renderIsolatie, calculator: renderCalculator,
+    dermatomen: renderDermatomen, vaatstelsel: renderVaatstelsel,
+    plattegrond: renderPlattegrond, buizen: renderBuizen, ecg: renderECG,
+    rooster: renderRooster, cardio: renderCardio,
   };
+
+  const renderContent = () => {
+    const r = SECTION_RENDERERS[activeSection];
+    return r ? r() : null;
+  };
+
+  // ---- Volledige full-text zoekindex ----
+  // Loopt door de ELEMENT-tree van elke tab (zonder te mounten) en verzamelt
+  // ALLE tekst, inclusief inline-paragrafen en gesloten collapses. Elke
+  // toevoeging aan welk tabblad dan ook wordt zo automatisch vindbaar.
+  const buildSearchIndex = () => {
+    const idx = [];
+    const walk = (node, collapse, sectionId, sectionLabel) => {
+      if (node == null || node === false || node === true) return;
+      if (typeof node === "string" || typeof node === "number") {
+        const s = String(node).trim();
+        if (s) idx.push({ section: sectionId, sectionLabel, collapse, text: s });
+        return;
+      }
+      if (Array.isArray(node)) { node.forEach(n => walk(n, collapse, sectionId, sectionLabel)); return; }
+      if (typeof node === "object" && node.props) {
+        const p = node.props;
+        let ct = collapse;
+        if (node.type === Collapse && typeof p.title === "string") {
+          ct = p.title;
+          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.title });
+        }
+        ["label", "placeholder", "alt"].forEach(k => {
+          if (typeof p[k] === "string" && p[k].trim()) idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p[k] });
+        });
+        walk(p.children, ct, sectionId, sectionLabel);
+      }
+    };
+    SECTIONS.forEach(s => {
+      const r = SECTION_RENDERERS[s.id];
+      if (!r) return;
+      let tree = null;
+      try { tree = r(); } catch (e) { tree = null; }
+      walk(tree, null, s.id, s.label);
+    });
+    // Tabblad-namen + synoniemen — zodat elk tabblad ook via trefwoorden vindbaar blijft
+    const SYNONIEMEN = {
+      tel: ["telefoon", "nummer", "bellen", "sein", "dienst", "contact"],
+      ok: ["operatiekamer", "schiphol", "specialisme"],
+      abcde: ["primary survey", "acuut", "benadering"],
+      medicatie: ["medicijn", "geneesmiddel", "dosering"],
+      checks: ["checklist", "veiligheid", "overdracht", "saltmovies", "lemon", "sbar"],
+      bloedgas: ["bga", "rotem", "stolling", "beademing"],
+      kinder: ["kind", "pediatrie", "baby", "neonaat"],
+      als: ["reanimatie", "cpr", "ritme", "advanced life support"],
+      spoed: ["noodknop", "spoedbundel", "luchtwegkar", "mlk"],
+      team: ["vertrouwenspersoon", "peersupport", "leidinggevende"],
+      epas: ["epa", "supervisie", "opleiding", "bekwaam"],
+      isolatie: ["isolatie", "besmetting", "hygiene", "biohazard"],
+      calculator: ["rekenen", "gewicht", "tube", "dosis", "vocht"],
+      dermatomen: ["dermatoom", "zenuw", "blokkade", "anatomie"],
+      vaatstelsel: ["vaten", "arterie", "ader", "anatomie"],
+      plattegrond: ["kaart", "ingang", "gebouw", "route", "locatie"],
+      buizen: ["buis", "buisje", "buizenpost", "afnamebuis", "lab"],
+      ecg: ["ecg", "ritme", "hartfilm"],
+      cardio: ["hart", "thoracaal", "ecc", "pomp"],
+      rooster: ["dienst", "vakantie", "verlof", "joker", "balansverlof", "ows", "atw", "ruilen"],
+    };
+    SECTIONS.forEach(s => {
+      if (s.id === "nood") return;
+      idx.push({ section: s.id, sectionLabel: "Tabblad", collapse: null, text: "Open tabblad: " + s.label, kw: [s.label].concat(SYNONIEMEN[s.id] || []).join(" ") });
+    });
+    return idx;
+  };
+
+  const searchIndexRef = useRef(null);
+  const searchResults = useMemo(() => {
+    if (!searchQuery || searchQuery.length < 2) return null;
+    if (!searchIndexRef.current) {
+      try { searchIndexRef.current = buildSearchIndex(); }
+      catch (e) { searchIndexRef.current = []; }
+    }
+    const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const tokens = deaccent(searchQuery).split(/\s+/).filter(Boolean);
+    const seen = new Set();
+    const out = [];
+    for (const item of searchIndexRef.current) {
+      const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
+      if (!tokens.every(t => hay.includes(t))) continue;
+      const key = item.section + "|" + (item.collapse || "") + "|" + item.text;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const person = (item.section === "team")
+        ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam))
+        : null;
+      out.push({
+        section: item.section,
+        collapse: item.collapse || null,
+        text: item.text,
+        cat: item.sectionLabel + (item.collapse ? " · " + item.collapse : ""),
+        personData: person || undefined,
+      });
+      if (out.length >= 60) break;
+    }
+    return out;
+  }, [searchQuery]);
 
   const activeSectionData = SECTIONS.find(s => s.id === activeSection);
 
@@ -6294,6 +6207,7 @@ function ZakkaartApp() {
                     if (r.loc) setLocatie(r.loc);
                     setActiveSection(r.section);
                   }
+                  setCollapseTarget(r.collapse ? { title: r.collapse, nonce: Date.now() } : null);
                   setSearchQuery("");
                 }}
                 style={{
@@ -6417,7 +6331,7 @@ function ZakkaartApp() {
                   .map(section => (
                   <button
                     key={section.id}
-                    onClick={() => setActiveSection(section.id)}
+                    onClick={() => { setCollapseTarget(null); setActiveSection(section.id); }}
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       border: "1px solid rgba(255,255,255,0.06)",
@@ -6448,7 +6362,9 @@ function ZakkaartApp() {
       {/* Section content */}
       {activeSection && (
         <div ref={contentRef} style={{ padding: "0 16px 32px" }}>
-          {renderContent()}
+          <CollapseTargetCtx.Provider value={collapseTarget}>
+            {renderContent()}
+          </CollapseTargetCtx.Provider>
         </div>
       )}
     </div>
