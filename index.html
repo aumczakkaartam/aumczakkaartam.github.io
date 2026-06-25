@@ -1486,42 +1486,47 @@ const CBD_VRAGEN = [
   { vraag: "Wat had je anders gedaan als de patiënt of situatie anders was geweest? (Bv. andere culturele achtergrond, medische geschiedenis, onverwachte bevindingen, mentale of fysieke afwijkingen, zelfde casus maar in nachtdienst, etc.)", doel: "Inschatten of een student ook weet hoe te handelen in situaties die je als begeleider mogelijk niet zal observeren." },
 ];
 
+// Complexiteitscategorieën (kleur) van de EPA-tijdlijn
+const EPA_CAT_KLEUR = { geel: "#e8b500", blauw: "#2f6fb0", groen: "#4a9d4a", roze: "#c2186f", rood: "#d23535" };
+const EPA_CAT_LABEL = { geel: "Laagcomplex", blauw: "Middencomplex", groen: "Hoogcomplex", roze: "Specifiek", rood: "Functieoverstijgend" };
+
+// start/zelf = kolommen 1-12 (twee per halfjaar); zelf = kolom waar niveau 4 hoort te staan
 const EPA_TIJDSCHEMA = [
-  { code: "MO-AM-1", alias: "AZ-FO-1-BAZ", bvp: true, niveau4HalfJaar: 2 },
-  { code: "AM-FO-1", alias: null, bvp: false, niveau4HalfJaar: 2 },
-  { code: "MO-AM-2", alias: "AZ-FO-2-BAZ", bvp: false, niveau4HalfJaar: 2 },
-  { code: "MO-AM-3", alias: null, bvp: false, niveau4HalfJaar: 2 },
-  { code: "MO-AM-4", alias: null, bvp: false, niveau4HalfJaar: 3 },
-  { code: "MO-AM-5", alias: null, bvp: false, niveau4HalfJaar: 3 },
-  { code: "MO-AM-6", alias: null, bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-7", alias: null, bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-8", alias: null, bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-9", alias: "AZ-FO-3-BAZ", bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-10", alias: null, bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-11", alias: null, bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-12", alias: null, bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-13", alias: null, bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-14", alias: null, bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-15", alias: "AZ-FO-4-BAZ", bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-16", alias: "AZ-REC-1", bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-17", alias: "AZ-REC-2", bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-FO-2", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-18", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-19", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-20", alias: null, bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-21", alias: null, bvp: false, niveau4HalfJaar: 4 },
-  { code: "MO-AM-22", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-23", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-24", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-25", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-26", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-27", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-28", alias: "AZ-REC-3", bvp: false, niveau4HalfJaar: 5 },
-  { code: "MO-AM-29", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-30", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-31", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-32", alias: null, bvp: false, niveau4HalfJaar: 6 },
-  { code: "MO-AM-33", alias: null, bvp: false, niveau4HalfJaar: 6 },
+  { code: "MO-AM-1", alias: "AZ-FO-1-BAZ", bvp: true, niveau4HalfJaar: 2, cat: "geel", start: 2, zelf: 3 },
+  { code: "AM-FO-1", alias: null, bvp: false, niveau4HalfJaar: 2, cat: "rood", start: 3, zelf: 4 },
+  { code: "MO-AM-2", alias: "AZ-FO-2-BAZ", bvp: false, niveau4HalfJaar: 2, cat: "geel", start: 3, zelf: 4 },
+  { code: "MO-AM-3", alias: null, bvp: false, niveau4HalfJaar: 2, cat: "geel", start: 3, zelf: 4 },
+  { code: "MO-AM-4", alias: null, bvp: false, niveau4HalfJaar: 3, cat: "geel", start: 3, zelf: 6 },
+  { code: "MO-AM-5", alias: null, bvp: false, niveau4HalfJaar: 3, cat: "geel", start: 3, zelf: 6 },
+  { code: "MO-AM-6", alias: null, bvp: false, niveau4HalfJaar: 4, cat: "geel", start: 3, zelf: 8 },
+  { code: "MO-AM-7", alias: null, bvp: false, niveau4HalfJaar: 4, cat: "geel", start: 3, zelf: 8 },
+  { code: "MO-AM-8", alias: null, bvp: false, niveau4HalfJaar: 4, cat: "geel", start: 5, zelf: 8 },
+  { code: "MO-AM-9", alias: "AZ-FO-3-BAZ", bvp: false, niveau4HalfJaar: 4, cat: "geel", start: 3, zelf: 8 },
+  { code: "MO-AM-10", alias: null, bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 5, zelf: 10 },
+  { code: "MO-AM-11", alias: null, bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 5, zelf: 10 },
+  { code: "MO-AM-12", alias: null, bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 5, zelf: 10 },
+  { code: "MO-AM-13", alias: null, bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 5, zelf: 10 },
+  { code: "MO-AM-14", alias: null, bvp: false, niveau4HalfJaar: 4, cat: "blauw", start: 5, zelf: 8 },
+  { code: "MO-AM-15", alias: "AZ-FO-4-BAZ", bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 5, zelf: 10 },
+  { code: "MO-AM-16", alias: "AZ-REC-1", bvp: false, niveau4HalfJaar: 4, cat: "blauw", start: 5, zelf: 8 },
+  { code: "MO-AM-17", alias: "AZ-REC-2", bvp: false, niveau4HalfJaar: 5, cat: "blauw", start: 7, zelf: 10 },
+  { code: "MO-FO-2", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "rood", start: 9, zelf: 12 },
+  { code: "MO-AM-18", alias: "AZ-FO-11", bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-19", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 8, zelf: 12 },
+  { code: "MO-AM-20", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 8, zelf: 11 },
+  { code: "MO-AM-21", alias: "AZ-FO-6", bvp: false, niveau4HalfJaar: 4, cat: "groen", start: 3, zelf: 8 },
+  { code: "MO-AM-22", alias: "AZ-REC-4", bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 9, zelf: 12 },
+  { code: "MO-AM-23", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-24", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-25", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-26", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-27", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "groen", start: 7, zelf: 12 },
+  { code: "MO-AM-28", alias: "AZ-REC-3", bvp: false, niveau4HalfJaar: 5, cat: "groen", start: 7, zelf: 10 },
+  { code: "MO-AM-29", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "roze", start: 11, zelf: 12 },
+  { code: "MO-AM-30", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "roze", start: 11, zelf: 12 },
+  { code: "MO-AM-31", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "roze", start: 11, zelf: 12 },
+  { code: "MO-AM-32", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "roze", start: 11, zelf: 12 },
+  { code: "MO-AM-33", alias: null, bvp: false, niveau4HalfJaar: 6, cat: "roze", start: 11, zelf: 12 },
 ];
 
 const NOODKNOP_INFO = [
@@ -3715,6 +3720,53 @@ function ZakkaartApp() {
             )}
           </div>
         ))}
+      </Collapse>
+
+      <Collapse title="Tijdlijn — streefmoment niveau 4" color="#1ABC9C">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginBottom: "10px", fontSize: "11px" }}>
+          {["geel", "blauw", "groen", "roze", "rood"].map(cat => (
+            <span key={cat} style={{ display: "flex", alignItems: "center", gap: "5px", color: "#aaa" }}>
+              <i style={{ width: "11px", height: "11px", borderRadius: "3px", background: EPA_CAT_KLEUR[cat], display: "inline-block" }} />
+              {EPA_CAT_LABEL[cat]}
+            </span>
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: "#888", marginBottom: "8px", lineHeight: 1.5 }}>
+          Elk halfjaar = 2 kolommen. De balk loopt tot het halfjaar waarin je <b style={{ color: "#fff" }}>niveau 4</b> (de <b style={{ color: "#fff" }}>4</b>) hoort te bereiken. De kleur geeft de complexiteit aan.
+        </div>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px" }}>
+          <div style={{ minWidth: "560px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "100px repeat(12,1fr)", background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ padding: "6px 8px", fontSize: "10px", fontWeight: 700, color: "#888", fontFamily: "'JetBrains Mono', monospace" }}>EPA</div>
+              {[1, 2, 3, 4, 5, 6].map(hj => (
+                <div key={hj} style={{ gridColumn: "span 2", textAlign: "center", padding: "6px 0", fontSize: "10px", fontWeight: 700, color: "#888", borderLeft: "2px solid rgba(255,255,255,0.14)" }}>{hj}e hj</div>
+              ))}
+            </div>
+            {EPA_TIJDSCHEMA.map((e, ri) => {
+              const c = EPA_CAT_KLEUR[e.cat];
+              return (
+                <div key={ri} style={{ display: "grid", gridTemplateColumns: "100px repeat(12,1fr)", borderBottom: ri < EPA_TIJDSCHEMA.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "0 6px", minHeight: "26px", overflow: "hidden" }}>
+                    <span style={{ width: "10px", height: "10px", borderRadius: "3px", background: c, flexShrink: 0 }} />
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "9.5px", color: "#ccc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.code}</span>
+                  </div>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => {
+                    const on = h >= e.start && h <= e.zelf;
+                    const is4 = h === e.zelf;
+                    return (
+                      <div key={h} style={{
+                        borderLeft: h % 2 === 1 ? "2px solid rgba(255,255,255,0.14)" : "1px solid rgba(255,255,255,0.05)",
+                        minHeight: "26px", display: "flex", alignItems: "center", justifyContent: "center",
+                        background: on ? c : "transparent",
+                        color: "#fff", fontWeight: 800, fontSize: "10px",
+                      }}>{is4 ? "4" : ""}</div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </Collapse>
 
       <Collapse title="Tijdschema EPA's" color="#1ABC9C">
