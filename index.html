@@ -5702,11 +5702,15 @@ function ZakkaartApp() {
       { m: "Cefazoline", c: "2 g / 10 ml" }, { m: "Fenylefrine", c: "100 µg/ml" },
       { m: "Efedrine", c: "5 mg/ml" }, { m: "Atropine", c: "0,5 mg" },
       { m: "Tranexaminezuur", c: "100 mg/ml" }, { m: "Heparine", c: "50 mg (5000 IE)/ml" },
-      { m: "Noradrenaline (pomp)", c: "100 µg/ml" }, { m: "Sufentanil (pomp)", c: "5 µg/ml" },
+    ];
+    const KLAARZET_POMPEN = [
+      { m: "Propofol (pomp)", c: "20 mg/ml (2%)" },
+      { m: "Noradrenaline (pomp)", c: "100 µg/ml" },
+      { m: "Sufentanil (pomp)", c: "5 µg/ml" },
     ];
     const KLAARZET_OVERLEG = [
-      { m: "Milrinone", c: "200 µg/ml (AMC)" }, { m: "Dobutamine", c: "5 mg/ml (AMC) / 4 mg/ml (VU)" },
-      { m: "Dopamine", c: "—" }, { m: "Propofol (pomp)", c: "10 mg/ml (AMC) / 20 mg/ml (VU)" },
+      { m: "Milrinone", c: "200 µg/ml" }, { m: "Dobutamine", c: "5 mg/ml" },
+      { m: "Dopamine", c: "—" },
     ];
     const STAPPEN = [
       { t: "Voor incisie", d: "Inleiding, lijnen prikken (arterie + centraal veneus), TEE plaatsen, blaaskatheter + temperatuur, antibioticaprofylaxe (cefazoline)." },
@@ -5717,8 +5721,8 @@ function ZakkaartApp() {
     ];
     const INGREPEN = [
       { t: "CABG — coronaire bypass", stuk: "Eén of meer kransslagaders (coronairen) zijn vernauwd of verstopt door aderverkalking → de hartspier krijgt te weinig zuurstof (angina pectoris, infarctrisico).", stappen: ["Sternotomie", "Bypass-vaten oogsten (a. mammaria interna, v. saphena of a. radialis)", "Meestal aan de ECC met hart stilgelegd; soms off-pump (OPCAB) op het kloppende hart", "Omleiding(en) hechten vóór en achter de vernauwing", "Van de pomp af, ontluchten, sluiten"] },
-      { t: "Aortaklep — vervangen (AKV) of sparen (David/VSRR)", stuk: "Aortaklep is vernauwd (stenose) of lekt (insufficiëntie) — door verkalking, aangeboren afwijking of een verwijde aortawortel.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Aorta openen, zieke klep beoordelen (TEE)", "AKV: vervangen door kunstklep (mechanisch of biologisch)", "Klepsparend (David/VSRR): aortawortel/ascendens vervangen door buisprothese met behoud van de eigen klepzegels", "Ontluchten, van de pomp af, sluiten"] },
-      { t: "Mitralisklep — plastiek (MKP) of vervanging (MKV)", stuk: "Mitralisklep lekt (insufficiëntie) of is vernauwd (stenose) → bloed stroomt terug richting de longen, kortademigheid.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Linker boezem openen, klep beoordelen via TEE", "Voorkeur: plastiek — eigen klep repareren met ring/hechtingen (MKP)", "Anders vervanging door een kunstklep (MKV)", "Lucht eruit, van de pomp af, sluiten"] },
+      { t: "Aortaklep — vervangen (AVR) of sparen (David/VSRR)", stuk: "Aortaklep is vernauwd (stenose) of lekt (insufficiëntie) — door verkalking, aangeboren afwijking of een verwijde aortawortel.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Aorta openen, zieke klep beoordelen (TEE)", "AVR: vervangen door kunstklep (mechanisch of biologisch)", "Klepsparend (David/VSRR): aortawortel/ascendens vervangen door buisprothese met behoud van de eigen klepzegels", "Ontluchten, van de pomp af, sluiten"] },
+      { t: "Mitralisklep — plastiek (MV repair) of vervanging (MVR)", stuk: "Mitralisklep lekt (insufficiëntie) of is vernauwd (stenose) → bloed stroomt terug richting de longen, kortademigheid.", stappen: ["Sternotomie, aan de ECC, aortaklem aan", "Linker boezem openen, klep beoordelen via TEE", "Voorkeur: plastiek — eigen klep repareren met ring/hechtingen (MV repair)", "Anders vervanging door een kunstklep (MVR)", "Lucht eruit, van de pomp af, sluiten"] },
       { t: "Aorta ascendens / boog (incl. Bentall)", stuk: "Verwijding (aneurysma) of scheur in de wand (dissectie) van de aorta ascendens of boog. Een dissectie is acuut → spoed-OK.", stappen: ["Open hart operatie, aan de ECC", "Boogchirurgie: vaak diepe koeling + tijdelijke circulatiestilstand, cerebrale bescherming (NIRS)", "Aangedaan deel vervangen door buisprothese", "Bentall: buisprothese mét kunstklep + coronairen opnieuw aanhechten", "Opwarmen, ontluchten, van de pomp af"] },
       { t: "PEARS — aortawortelondersteuning", stuk: "Verwijde aortawortel (bv. bij Marfan of bindweefselziekte) met risico op verdere uitzetting, terwijl de eigen aortaklep nog goed werkt.", stappen: ["Vooraf wordt op basis van een CT-scan een op maat geprinte mesh-kous gemaakt", "Sternotomie", "Meestal op het kloppende hart — zonder hart-longmachine en zonder aortaklem", "De maatkous wordt rond de aortawortel/ascendens geschoven en vastgehecht → ondersteunt de wand en remt verdere verwijding", "Eigen aortaklep blijft behouden"] },
       { t: "Aorta descendens (open of EVAR)", stuk: "Aneurysma van de afdalende aorta (operatie meestal bij doorsnede > 5,5 cm) — risico op ruptuur.", stappen: ["Open: via thoracotomie/laparotomie het aangedane deel vervangen (bij TAAA spinaalkatheter ter bescherming van het ruggenmerg)", "EVAR: stentprothese via de lies in de aorta plaatsen (minimaal invasief)"] },
@@ -5745,8 +5749,8 @@ function ZakkaartApp() {
       { k: "Mitralisinsufficiëntie (MI)", doel: "\"Fast, full & forward\" — lage SVR zodat het hart vooruit pompt i.p.v. terug." },
     ];
     const AFKORTINGEN = [
-      ["ABGA", "arteriële bloedgasanalyse"], ["ACT", "activated clotting time"], ["AF", "atriumfibrilleren (boezemfibrilleren)"],
-      ["AKV", "aortaklepvervanging"], ["AoX", "aortaklem (cross-clamp)"], ["APC", "atriale premature contractie"],
+      ["ABG", "arterial blood gas (arteriële bloedgasanalyse)"], ["ACT", "activated clotting time"], ["AF", "atriumfibrilleren (boezemfibrilleren)"],
+      ["AVR", "aortic valve replacement (aortaklepvervanging)"], ["AoX", "aortaklem (cross-clamp)"], ["APC", "atriale premature contractie"],
       ["APTT", "geactiveerde partiële tromboplastinetijd"], ["ASD", "atriumseptumdefect"],
       ["Bentall", "aortawortelvervanging: buisprothese mét kunstklep + herinplant coronairen"],
       ["CABG", "coronary artery bypass graft (coronaire omleiding)"], ["CCH", "cardiochirurgie"], ["CI", "cardiac index"],
@@ -5754,7 +5758,7 @@ function ZakkaartApp() {
       ["ECMO", "extracorporele membraanoxygenatie"], ["EF", "ejectiefractie"],
       ["EVAR", "endovasculair aneurysma repair (stent via de lies)"], ["FiO₂", "ingeademde zuurstoffractie"],
       ["FFP", "fresh frozen plasma"], ["HLM", "hart-longmachine"], ["IC", "intensive care"], ["INR", "international normalized ratio"],
-      ["MKP", "mitralisklepplastiek"], ["MKV", "mitralisklepvervanging"], ["NIBP", "niet-invasieve bloeddruk"],
+      ["MV repair", "mitral valve repair (mitralisklepplastiek)"], ["MVR", "mitral valve replacement (mitralisklepvervanging)"], ["NIBP", "niet-invasieve bloeddruk"],
       ["OPCAB", "off-pump coronary artery bypass (CABG op kloppend hart)"], ["PAP", "pulmonalisarteriedruk"],
       ["PCWP", "pulmonary capillary wedge pressure"], ["PEARS", "personalised external aortic root support (maatkous rond de aortawortel)"],
       ["PEEP", "positieve eind-expiratoire druk"], ["TAAA", "thoraco-abdominaal aorta-aneurysma"],
@@ -5799,6 +5803,8 @@ function ZakkaartApp() {
           ])}
           {sub("Medicatie standaard")}
           {KLAARZET_MEDS.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
+          {sub("Standaardpompen")}
+          {KLAARZET_POMPEN.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
           {sub("In overleg klaarzetten")}
           {KLAARZET_OVERLEG.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
         </Collapse>
