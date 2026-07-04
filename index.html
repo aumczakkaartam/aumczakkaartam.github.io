@@ -383,6 +383,8 @@ const TELEFOON_AMC = {
     { naam: "ICT", nummer: "63011" },
     { naam: "Perfusie kantoor", nummer: "62611" },
     { naam: "Patiëntenvervoer", nummer: "63300" },
+    { naam: "Arbodienst (prikaccident, 08–16.30u)", nummer: "020-566 20 83" },
+    { naam: "Technische dienst", nummer: "81-58441" },
     { naam: "René", nummer: "28711" },
   ],
   dagcentrumOK: [
@@ -441,6 +443,7 @@ const TELEFOON_VUMC = {
     { naam: "Koffiekamer 1D", nummer: "45170" },
     { naam: "Bloedbank", nummer: "42620" },
     { naam: "ICT", nummer: "40777 / 85810" },
+    { naam: "Technische dienst", nummer: "64259 / 61239" },
   ],
   sein: [
     { naam: "Dagcoörd. anesthesie", nummer: "*986051" },
@@ -1574,8 +1577,8 @@ const VIER_H_VIER_T = [
     kleur: "#E74C3C",
     acties: [
       "Stop de bloeding",
-      "Geef vochtbolus i.v., grote i.v.-toegang",
-      "Start transfusie bij massaal bloedverlies",
+      "Geef vochtbolus i.v. (kristalloïden/colloïden), grote i.v.-toegang",
+      "Massaal bloedverlies → MTP pakket A: 4 erytrocyten, 4 plasma's (FFP), 2 trombocyten",
       "DD: distributieve shock (sepsis, neurogene shock, anafylaxie)",
     ],
   },
@@ -2262,6 +2265,19 @@ function ZakkaartApp() {
 
   // ---- Section content renderers ----
 
+  const SEIN_MELDINGEN = [
+    { code: "BEL 55", uitleg: "Reanimatieoproep in het ziekenhuis of verwacht op de shockroom (meestal 5). Bel 55 (vaste telefoon) of 5555 (zebra); bij ingesprektoon ophangen en opnieuw bellen tot je de meldcentrale krijgt — meld je seinnummer." },
+    { code: "TRAUMA", uitleg: "Traumapatiënt verwacht op de shockroom (meestal 2)." },
+    { code: "TRAUMA KIND", uitleg: "Traumapatiënt < 18 jaar verwacht op de shockroom (meestal 2)." },
+    { code: "UPGRADE", uitleg: "Traumaopvang is al gaande maar geëscaleerd — patiënt te instabiel voor het kleine traumateam; groot traumateam gevraagd." },
+    { code: "AAAA", uitleg: "Verdenking acuut aneurysma aorta abdominalis op de shockroom (meestal 3). Ook verdenking Type A dissectie valt hieronder." },
+    { code: "S SECTIO", uitleg: "Verlosafdeling drukt noodbel — spoedsectio (meestal OK 14, anders OK 18 of OK 8)." },
+    { code: "ECMO SEH", uitleg: "ECMO-patiënt verwacht op de shockroom óf ECMO wordt daar geplaatst (plaatsen meestal shockroom 5, reeds aanwezige ECMO meestal shockroom 2)." },
+    { code: "A1 OK **", uitleg: "Noodbel ingedrukt in de betreffende OK." },
+    { code: "PIEP", uitleg: "Het sein wordt gebeld — bel 8259577 om op te nemen." },
+    { code: "ALARM", uitleg: "Er is een noodoproep uitgezet naar het sein." },
+  ];
+
   const renderNood = () => (
     <div>
       <div style={{
@@ -2334,6 +2350,19 @@ function ZakkaartApp() {
             }}>{item}</div>
           ))}
         </div>
+      </Collapse>
+      <Collapse title="Meldingen op het sein" color="#E74C3C">
+        {SEIN_MELDINGEN.map((s, i) => (
+          <div key={i} style={{
+            padding: "10px 0 10px 10px",
+            borderBottom: i < SEIN_MELDINGEN.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+            borderLeft: "4px solid #E74C3C",
+            marginBottom: "2px",
+          }}>
+            <div style={{ fontWeight: 800, color: "#E74C3C", fontSize: "14px", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px" }}>{s.code}</div>
+            <div style={{ fontSize: "13px", color: "#ccc", marginTop: "3px", lineHeight: 1.5 }}>{s.uitleg}</div>
+          </div>
+        ))}
       </Collapse>
     </div>
   );
@@ -3340,11 +3369,12 @@ function ZakkaartApp() {
       }}>
         <SectionTitle color="#E74C3C">Specialistische reanimatie (ALS)</SectionTitle>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
-          <strong style={{ color: "#fff" }}>Schokbaar (VF/VT):</strong> 1 schok → 2 min BLS → herhaal. Kinderen {"<"}50 kg: 4 J/kg.
-          Amiodaron na 3e en 5e defibrillatie: 1e gift 5 mg/kg (max 300 mg), 2e gift 5 mg/kg (max 150 mg).
+          <strong style={{ color: "#fff" }}>Schokbaar (VF/VT):</strong> 1 schok → 2 min BLS → herhaal.
+          <strong style={{ color: "#fff" }}> AUMC volwassenen: eerste schok 200 J, daarna 360 J.</strong> Kinderen {"<"}50 kg: 4 J/kg.
+          Bij 3e blok adrenaline 1 mg + amiodaron 300 mg; herhaal elke 2 blokken; 5e blok nogmaals amiodaron 150 mg.
         </div>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7, marginTop: "10px" }}>
-          <strong style={{ color: "#fff" }}>Niet-schokbaar (PEA/Asystolie):</strong> Direct adrenaline. Kinderen 10 µg/kg (max 1 mg) elke 3–5 min.
+          <strong style={{ color: "#fff" }}>Niet-schokbaar (PEA/Asystolie):</strong> Adrenaline 1 mg vanaf 1e blok, daarna elke 2 blokken (3e, 5e …). Kinderen 10 µg/kg (max 1 mg) elke 3–5 min.
         </div>
       </div>
       <Collapse title="Tijdens reanimatie" color="#E74C3C">
@@ -5764,9 +5794,18 @@ function ZakkaartApp() {
       { m: "Milrinone", c: "200 µg/ml" }, { m: "Dobutamine", c: "5 mg/ml" },
       { m: "Dopamine", c: "—" },
     ];
+    const INOTROPICA = [
+      { m: "Argipressine (Empressine)", b: "40 IE/2 ml → aanvullen tot 50 ml NaCl 0,9%", c: "0,8 IE/ml", w: "Arteriële vasoconstrictie" },
+      { m: "Dobutamine", b: "250 mg/50 ml, puur", c: "5 mg/ml", w: "Positief inotroop + chronotroop" },
+      { m: "Isoprenaline", b: "1 mg/ml → aanvullen tot 50 ml NaCl 0,9%", c: "20 µg/ml", w: "Positief chronotroop, inotroop + dromotroop" },
+      { m: "Milrinone", b: "10 mg/10 ml → aanvullen tot 50 ml NaCl 0,9%", c: "200 µg/ml", w: "Positief inotroop + chronotroop + perifere vasodilatatie" },
+      { m: "Nitroglycerine", b: "50 mg/50 ml, puur", c: "1 mg/ml", w: "Veneuze vasodilatatie" },
+      { m: "Noradrenaline", b: "5 mg/5 ml → aanvullen tot 50 ml NaCl 0,9%", c: "100 µg/ml", w: "Positief chronotroop, inotroop + perifere vasoconstrictie" },
+      { m: "Terlipressine", b: "0,85 mg/8,5 ml → aanvullen tot 50 ml NaCl 0,9%", c: "17 µg/ml", w: "Vasoconstrictie abdominaal vaatbed" },
+    ];
     const STAPPEN = [
       { t: "Voor incisie", d: "Inleiding, lijnen prikken (arterie + centraal veneus), TEE plaatsen, blaaskatheter + temperatuur, antibioticaprofylaxe (cefazoline)." },
-      { t: "Incisie → ECC", d: "Sternotomie, prepareren. Heparine geven vóór canulatie, ACT controleren (streef > 450 s)." },
+      { t: "Incisie → ECC", d: "Sternotomie, prepareren. 300 IE/kg heparine + 1 g TXA vóór canulatie, na 3 min ACT bepalen: > 350 s canuleren, > 400 s ECC starten." },
       { t: "Aan de ECC (bypass)", d: "Perfusionist neemt circulatie over. Beademing aanpassen/stoppen, hoofd/pupillen controleren, TEE freeze, urine af." },
       { t: "Einde operatie", d: "Ontluchten, opwarmen > 36 °C, ritme/pacing, van de pomp af, protamine geven, hemostase, sluiten." },
       { t: "Transport & overdracht IC", d: "Stabiliseren, pompen mee, gemonitord transport, gestructureerde overdracht aan IC." },
@@ -5784,14 +5823,15 @@ function ZakkaartApp() {
       { t: "E-CPR / ECMO (spoed)", stuk: "Circulatiestilstand — hart en longen vallen uit.", stappen: ["Op de shockroom of IC een ECMO plaatsen (canules in de grote vaten)", "ECMO neemt circulatie en oxygenatie tijdelijk over", "Volg het eigen spoed-/ECMO-protocol"] },
     ];
     const ECC_FASES = [
-      { f: "Pre-bypass", kleur: "#E67E22", items: ["Heparine gegeven, <strong>ACT > 450 s</strong>", "Canulatie gecontroleerd", "TEE freeze", "Urine af, stop extra volume"] },
+      { f: "Pre-bypass", kleur: "#E67E22", items: ["Heparine 300 IE/kg gegeven, na 3 min <strong>ACT > 350 s canuleren</strong>, <strong>> 400 s ECC starten</strong>", "Canulatie gecontroleerd", "TEE freeze", "Urine af, stop extra volume"] },
       { f: "Aan de bypass", kleur: "#3498DB", items: ["Inspectie hoofd / nek / pupillen", "Beademing halveren bij volle flow", "Bij aortaklem: beademing stop, 5 cmH₂O PEEP, FiO₂ 21%"] },
       { f: "Van de bypass af", kleur: "#2ECC71", items: ["Lucht verwijderen (80% O₂, Trendelenburg)", "Kerntemperatuur > 36 °C", "Ritme / pacing op orde", "Ca²⁺ en K⁺ normaal", "Vulling op peil, Hb streef ± 6,0 mmol/l", "Protamine standby, TXA loopt"] },
     ];
     const HEPARINE = [
-      { m: "Heparine (ECC)", w: "300 IE/kg — streef ACT > 450 s" },
-      { m: "Protamine", w: "0,8 : 1 (protamine : heparine); ACT-controle 5–10 min na toediening" },
-      { m: "Tranexaminezuur (TXA)", w: "10 mg/kg oplaaddosis vóór ECC, daarna 1–4 mg/kg/u" },
+      { m: "Heparine (ECC)", w: "300 IE/kg vóór canulatie; na 3 min ACT bepalen — <strong>> 350 s canuleren, > 400 s ECC starten</strong>" },
+      { m: "Heparine (OPCAB, off-pump)", w: "150 IE/kg — streef ACT 300 s" },
+      { m: "Protamine", w: "0,8–1 : 1 (protamine : heparine); 5 min na toediening ACT — terug richting uitgangs-ACT" },
+      { m: "Tranexaminezuur (TXA)", w: "1 g samen met de heparine vóór ECC (≈ 10 mg/kg), daarna 1–4 mg/kg/u" },
       { m: "Transfusietrigger", w: "Hb < 4 mmol/l: transfunderen · > 6 mmol/l: geen indicatie" },
     ];
     const KLEPPEN = [
@@ -5902,6 +5942,25 @@ function ZakkaartApp() {
             <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", marginBottom: "3px" }}>{x.m}</div>
               <div style={{ fontSize: "12px", color: "#bbb", lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: x.w }} />
+            </div>
+          ))}
+        </Collapse>
+
+        <Collapse title="Inotropica & vasopressoren — bereiding" color="#E67E22">
+          <div style={{ fontSize: "11px", color: "#888", fontStyle: "italic", marginBottom: "10px" }}>
+            Standaard spuitenpomp-bereidingen CAPU OK (50 ml). Verifieer met protocol 'Inotropica en Medicatie CAPU OK'.
+          </div>
+          {INOTROPICA.map((x, i) => (
+            <div key={i} style={{
+              background: "#E67E2210", border: "1px solid #E67E2235", borderLeft: "4px solid #E67E22",
+              borderRadius: "10px", padding: "12px", marginBottom: "10px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px", marginBottom: "4px" }}>
+                <span style={{ fontWeight: 700, color: "#E67E22", fontSize: "14px" }}>{x.m}</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#fff", fontSize: "13px", whiteSpace: "nowrap" }}>{x.c}</span>
+              </div>
+              <div style={{ fontSize: "12px", color: "#bbb", lineHeight: 1.5, marginBottom: "4px" }}>{x.b}</div>
+              <div style={{ fontSize: "12px", color: "#ccc", lineHeight: 1.5, fontStyle: "italic" }}>{x.w}</div>
             </div>
           ))}
         </Collapse>
