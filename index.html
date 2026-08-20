@@ -83,12 +83,34 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="fuse.min.js"></script>
   <script type="text/babel">
     const { useState, useMemo, useRef, useEffect, useContext } = React;
 
 // Context waarmee een zoekresultaat de juiste Collapse automatisch openklapt + erheen scrollt
 const CollapseTargetCtx = React.createContext(null);
 const normTitle = s => (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+// Zoeksynoniemen voor de zoekbalk (fuzzy search via Fuse.js): merknaam <-> stofnaam
+// en veelgebruikte afkortingen/concepten, zodat "esmeron" ook "rocuronium" vindt en omgekeerd.
+const ZOEK_SYNONIEMEN = {
+  esmeron: ["rocuronium"], rocuronium: ["esmeron"],
+  diprivan: ["propofol"], propofol: ["diprivan"],
+  ultiva: ["remifentanil"], remifentanil: ["ultiva"],
+  sufenta: ["sufentanil"], sufentanil: ["sufenta"],
+  dormicum: ["midazolam"], midazolam: ["dormicum"],
+  bridion: ["sugammadex"], sugammadex: ["bridion"],
+  nimbex: ["cisatracurium"], cisatracurium: ["nimbex"],
+  tracrium: ["atracurium"], atracurium: ["tracrium"],
+  dipidolor: ["piritramide"], piritramide: ["dipidolor"],
+  ponv: ["misselijkheid", "antiemetica", "ondansetron", "dexamethason"],
+  rsi: ["rapid sequence", "crash inductie"],
+  tiva: ["propofol", "remifentanil", "totale intraveneuze"],
+  avr: ["aortaklep", "klepvervanging"],
+  cabg: ["bypass", "coronair"],
+  rotem: ["stolling", "tromboelastometrie"],
+  sbar: ["overdracht"],
+};
 
 
 // ============================================================
@@ -6081,22 +6103,69 @@ function ZakkaartApp() {
   };
 
   const searchIndexRef = useRef(null);
+  const searchFuseRef = useRef(null);
+  const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const searchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return null;
     if (!searchIndexRef.current) {
       try { searchIndexRef.current = buildSearchIndex(); }
       catch (e) { searchIndexRef.current = []; }
     }
-    const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const tokens = deaccent(searchQuery).split(/\s+/).filter(Boolean);
-    const seen = new Set();
+    if (!searchFuseRef.current && window.Fuse) {
+      searchFuseRef.current = new Fuse(searchIndexRef.current, {
+        keys: [
+          { name: "text", weight: 0.5 },
+          { name: "collapse", weight: 0.25 },
+          { name: "kw", weight: 0.15 },
+          { name: "sectionLabel", weight: 0.1 },
+        ],
+        includeScore: true,
+        ignoreLocation: true,
+        threshold: 0.38,
+        minMatchCharLength: 2,
+      });
+    }
+    const ql = deaccent(searchQuery);
+
+    // Zoektermen: origineel + medicatie/afkorting-synoniemen (bv. "esmeron" -> ook "rocuronium")
+    const terms = [searchQuery];
+    const padded = " " + ql + " ";
+    for (const key in ZOEK_SYNONIEMEN) {
+      if (padded.includes(" " + key + " ")) terms.push(...ZOEK_SYNONIEMEN[key]);
+    }
+
+    const seen = new Map(); // "section|collapse|text" -> { item, score }
+    if (searchFuseRef.current) {
+      for (const term of terms) {
+        for (const r of searchFuseRef.current.search(term)) {
+          const it = r.item;
+          const key = it.section + "|" + (it.collapse || "") + "|" + it.text;
+          const prev = seen.get(key);
+          if (!prev || r.score < prev.score) seen.set(key, { item: it, score: r.score });
+        }
+      }
+    } else {
+      // Fallback zonder Fuse (bv. als fuse.min.js niet kon laden): letterlijke woord-match
+      const tokens = ql.split(/\s+/).filter(Boolean);
+      for (const item of searchIndexRef.current) {
+        const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
+        if (!tokens.every(t => hay.includes(t))) continue;
+        const key = item.section + "|" + (item.collapse || "") + "|" + item.text;
+        if (!seen.has(key)) seen.set(key, { item, score: 0 });
+      }
+    }
+
+    // Prefix- en exacte-treffer-boost, zodat de beste match bovenaan staat
+    const arr = [...seen.values()];
+    arr.forEach(r => {
+      const words = deaccent((r.item.text || "") + " " + (r.item.collapse || "")).split(/[\s\-/]+/).filter(Boolean);
+      if (words.some(w => w.startsWith(ql))) r.score *= 0.3;
+      if (deaccent(r.item.text || "") === ql || deaccent(r.item.collapse || "") === ql) r.score *= 0.1;
+    });
+    arr.sort((a, b) => a.score - b.score);
+
     const out = [];
-    for (const item of searchIndexRef.current) {
-      const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
-      if (!tokens.every(t => hay.includes(t))) continue;
-      const key = item.section + "|" + (item.collapse || "") + "|" + item.text;
-      if (seen.has(key)) continue;
-      seen.add(key);
+    for (const { item } of arr) {
       const person = (item.section === "team")
         ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam))
         : null;
