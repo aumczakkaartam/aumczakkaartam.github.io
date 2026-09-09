@@ -187,8 +187,8 @@ function Collapse({ title, color = "#fff", children, defaultOpen = false, icon =
 function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2ECC71" }) {
   const ref = useRef(null);
   const itemH = 44;
-  const visible = 5;
-  const pad = 2;
+  const visible = 3;
+  const pad = 1;
 
   const paddedItems = [
     ...Array(pad).fill({ label: "", isPad: true }),
@@ -217,8 +217,9 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
     <div style={{ position: "relative", height: itemH * visible, overflow: "hidden", borderRadius: "12px" }}>
       <div style={{
         position: "absolute", top: itemH * pad, left: 0, right: 0, height: itemH,
-        background: `${accentColor}18`, border: `1px solid ${accentColor}40`,
+        background: `${accentColor}18`, border: `1px solid ${accentColor}50`,
         borderRadius: "10px", pointerEvents: "none", zIndex: 2,
+        boxShadow: `0 0 14px ${accentColor}30, inset 0 0 8px ${accentColor}12`,
       }} />
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: itemH * pad,
@@ -260,7 +261,9 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
                 fontWeight: isSelected ? 700 : 400,
                 color: isSelected ? "#fff" : "#444",
                 fontFamily: "'JetBrains Mono', monospace",
-                transition: "font-size 0.1s, color 0.1s",
+                transform: isSelected ? "scale(1.06)" : "scale(1)",
+                textShadow: isSelected ? `0 0 16px ${accentColor}60` : "none",
+                transition: "transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 0.15s, color 0.15s, text-shadow 0.15s",
               }}
             >
               {!item.isPad ? item.label : ""}
@@ -1000,30 +1003,54 @@ const LAST_PROTOCOL = {
 };
 
 const MEDICATIE_STANDAARD = [
-  { groep: "Anesthetica", med: "Propofol", concentratie: "10 mg/ml (1%) <3 jr · 20 mg/ml (2%) ≥3 jr", inductie: "1–2,5 mg/kg", onderhoud: "4–12 mg/kg/uur" },
-  { groep: "Anesthetica", med: "Thiopental", concentratie: "25 mg/ml", inductie: "3–5 mg/kg", onderhoud: "n.v.t." },
-  { groep: "Anesthetica", med: "Midazolam", concentratie: "1 mg/ml", inductie: "0,05–0,1 mg/kg", onderhoud: "n.v.t." },
-  { groep: "Analgetica/anesthetica", med: "Esketamine", concentratie: "5 mg/ml", inductie: "0,25–0,5 mg/kg", onderhoud: "0,1–0,2 mg/kg/uur" },
-  { groep: "Opioïden", med: "Sufentanil", concentratie: "5 µg/ml", inductie: "0,1–0,5 µg/kg", onderhoud: "0,1–0,3 µg/kg/uur" },
-  { groep: "Opioïden", med: "Remifentanil", concentratie: "50 µg/ml", inductie: "0,5–1 µg/kg/min", onderhoud: "0,05–0,3 µg/kg/min" },
-  { groep: "Opioïden", med: "Morfine", concentratie: "1 mg/ml", inductie: "0,05–0,2 mg/kg", onderhoud: "0,05–0,1 mg/kg/uur" },
-  { groep: "Opioïden", med: "Methadon", concentratie: "10 mg/ml", inductie: "0,1–0,2 mg/kg", onderhoud: "n.v.t." },
-  { groep: "Opioïden", med: "Fentanyl", concentratie: "50 µg/ml", inductie: "1–3 µg/kg", onderhoud: "n.v.t." },
-  { groep: "Relaxantia", med: "Rocuronium", concentratie: "10 mg/ml", inductie: "0,6–1,2 (RSI) mg/kg", onderhoud: "n.v.t." },
-  { groep: "Relaxantia", med: "Succinylcholine", concentratie: "50 mg/ml", inductie: "1–1,5 mg/kg", onderhoud: "n.v.t." },
-  { groep: "Sympathicomimetica", med: "Efedrine", concentratie: "5 mg/ml", inductie: "3–9 mg per keer", onderhoud: "n.v.t." },
-  { groep: "Sympathicomimetica", med: "Noradrenaline", concentratie: "20 µg/ml", inductie: "0,05–0,1 µg/kg/min", onderhoud: "0,02–1 µg/kg/min" },
-  { groep: "Sympathicomimetica", med: "Fenylefrine", concentratie: "100 µg/ml", inductie: "50–100 µg per keer", onderhoud: "n.v.t." },
-  { groep: "Sympathicomimetica", med: "Adrenaline", concentratie: "10 µg/ml (pomp) · 0,1 mg/ml (nood 1:10.000)", inductie: "10–100 µg", onderhoud: "0,05–0,5 µg/kg/min" },
-  { groep: "Anticholinergica", med: "Atropine", concentratie: "0,5 mg/ml", inductie: "0,5 mg", onderhoud: "n.v.t." },
-  { groep: "Locale anesthetica", med: "Lidocaïne", concentratie: "10 mg/ml (1%)", inductie: "1–1,5 mg/kg IV", onderhoud: "1–2 mg/kg/uur" },
-  { groep: "Antibiotica", med: "Cefazoline", concentratie: "100 mg/ml (2 g in 20 ml NaCl 0,9%)", inductie: "1–2 g (3g bij BMI >40)", onderhoud: "n.v.t." },
-  { groep: "Antifibrinolytica", med: "Tranexaminezuur", concentratie: "100 mg/ml", inductie: "10–15 mg/kg", onderhoud: "n.v.t." },
-  { groep: "Analgetica niet-opioïd", med: "Paracetamol", concentratie: "10 mg/ml", inductie: "1 g IV", onderhoud: "n.v.t." },
-  { groep: "Analgetica niet-opioïd", med: "Metamizol", concentratie: "500 mg/ml", inductie: "1–2,5 g IV", onderhoud: "n.v.t." },
-  { groep: "Antiemetica", med: "Ondansetron", concentratie: "2 mg/ml", inductie: "4 mg IV", onderhoud: "n.v.t." },
-  { groep: "Antiemetica", med: "Dexamethason", concentratie: "4 mg/ml", inductie: "4–8 mg IV", onderhoud: "n.v.t." },
-  { groep: "Antiemetica", med: "Droperidol", concentratie: "2,5 mg/ml", inductie: "0,625–1,25 mg IV", onderhoud: "n.v.t." },
+  { groep: "Anesthetica", med: "Propofol", concentratie: "10 mg/ml (1%) <3 jr · 20 mg/ml (2%) ≥3 jr", inductie: "1–2,5 mg/kg", onderhoud: "4–12 mg/kg/uur",
+    bron: { status: "✅", tekst: "FK: inductie 1,5–2,5 mg/kg (<55 jr, tot 1 mg/kg bij ouderen/ASA III-IV); onderhoud 4–12 mg/kg/uur — consistent." } },
+  { groep: "Anesthetica", med: "Thiopental", concentratie: "25 mg/ml", inductie: "3–5 mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "🟡", tekst: "FK-zoekresultaten wisselend (±3–4 mg/kg vs. een losstaand absoluut cijfer); app's bredere 3–5 mg/kg is de gangbare leerboekdosis en overlapt met FK. Middel wordt nog zelden gebruikt." } },
+  { groep: "Anesthetica", med: "Midazolam", concentratie: "1 mg/ml", inductie: "0,05–0,1 mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "Valt binnen het bredere FK-titratiebereik (0,03–0,3 mg/kg); als co-inductie/premedicatie is 0,05–0,1 mg/kg gangbare praktijk." } },
+  { groep: "Analgetica/anesthetica", med: "Esketamine", concentratie: "5 mg/ml", inductie: "0,5–1 mg/kg", onderhoud: "0,1–0,2 mg/kg/uur",
+    bron: { status: "✅", tekst: "AANGEPAST (was 0,25–0,5 mg/kg — dat is de analgetische sub-dissociatieve dosis, niet de inductiedosis). FK: 0,5–1 mg/kg IV over ~60 sec voor inductie, overeenkomend met de eerder bevestigde kinderdosis." } },
+  { groep: "Opioïden", med: "Sufentanil", concentratie: "5 µg/ml", inductie: "0,2–1 µg/kg", onderhoud: "0,1–0,3 µg/kg/uur",
+    bron: { status: "✅", tekst: "AANGEPAST (was 0,1–0,5 µg/kg — ondergrens niet in FK teruggevonden). FK: 0,5–1,0 µg/kg solo of 0,2–0,5 µg/kg gecombineerd met inductiemiddel (tot 1 µg/kg bij hartchirurgie)." } },
+  { groep: "Opioïden", med: "Remifentanil", concentratie: "50 µg/ml", inductie: "0,5–1 µg/kg/min", onderhoud: "0,05–0,3 µg/kg/min",
+    bron: { status: "✅", tekst: "FK: inductie 0,5–1 µg/kg/min ± bolus 1 µg/kg; onderhoud initieel 0,25–0,4, totaalbereik 0,05–2 µg/kg/min — consistent." } },
+  { groep: "Opioïden", med: "Morfine", concentratie: "1 mg/ml", inductie: "0,05–0,2 mg/kg", onderhoud: "0,05–0,1 mg/kg/uur",
+    bron: { status: "🟡", tekst: "Geen directe FK mg/kg-citaat (FK doseert volwassenen doorgaans in absolute mg); omgerekend bereik komt overeen met gangbare titratiedoses (± 2,5–10 mg per gift bij 70 kg)." } },
+  { groep: "Opioïden", med: "Methadon", concentratie: "10 mg/ml", inductie: "0,1–0,2 mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "Peroperatieve inductiedosis 0,125–0,2 mg/kg uit anesthesiologische bronnen — nagenoeg gelijk aan de app-waarde." } },
+  { groep: "Opioïden", med: "Fentanyl", concentratie: "50 µg/ml", inductie: "1–3 µg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: inductie 1,0–8,4 µg/kg; app's 1–3 µg/kg is de gangbare subset voor standaardchirurgie (hogere doses voorbehouden aan hartchirurgie)." } },
+  { groep: "Relaxantia", med: "Rocuronium", concentratie: "10 mg/ml", inductie: "0,6–1,2 (RSI) mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 0,6 mg/kg routine-inductie, 1,0 mg/kg spoedinductie (tot 2,0 mg/kg zonder cardiovasculaire bijwerkingen) — app's RSI-bovengrens (1,2) valt hierbinnen." } },
+  { groep: "Relaxantia", med: "Succinylcholine", concentratie: "50 mg/ml", inductie: "1–1,5 mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "Klassieke intubatiedosis 1–1,5 mg/kg; FK bevestigt dat 1 mg/kg volledige verslapping geeft, vervolgdoses 0,3–1,1 mg/kg." } },
+  { groep: "Sympathicomimetica", med: "Efedrine", concentratie: "5 mg/ml", inductie: "3–9 mg per keer", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK kent twee toedieningsvormen: 3–6 mg (max 9) of 5–10 mg per gift — app's 3–9 mg valt hier middenin." } },
+  { groep: "Sympathicomimetica", med: "Noradrenaline", concentratie: "20 µg/ml", inductie: "0,05–0,1 µg/kg/min", onderhoud: "0,02–1 µg/kg/min",
+    bron: { status: "✅", tekst: "FK-startdosis 0,05–0,15 µg/kg/min; app's bredere bereik (0,02–1) dekt ook titratie bij refractaire shock, gangbaar in de OK/IC-praktijk." } },
+  { groep: "Sympathicomimetica", med: "Fenylefrine", concentratie: "100 µg/ml", inductie: "50–100 µg per keer", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: bolus 50–100 µg per keer — exacte match." } },
+  { groep: "Sympathicomimetica", med: "Adrenaline", concentratie: "10 µg/ml (pomp) · 0,1 mg/ml (nood 1:10.000)", inductie: "10–100 µg", onderhoud: "0,05–0,5 µg/kg/min",
+    bron: { status: "🟡", tekst: "Geen directe FK-tekst voor deze specifieke IV-titratiedosis; FK kent alleen 1 mg IV (reanimatie) en 0,5 mg IM (anafylaxie). App-waarde is de gangbare anesthesiologische titratiedosis voor peroperatieve anafylaxie/hypotensie (bv. AAGBI-richtlijn) — een andere context dan reanimatie." } },
+  { groep: "Anticholinergica", med: "Atropine", concentratie: "0,5 mg/ml", inductie: "0,5 mg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 0,5 mg IV bij bradycardie, herhalen tot max 3 mg — exacte match." } },
+  { groep: "Locale anesthetica", med: "Lidocaïne", concentratie: "10 mg/ml (1%)", inductie: "1–1,5 mg/kg IV", onderhoud: "1–2 mg/kg/uur",
+    bron: { status: "🟡", tekst: "FK beschrijft alleen de maximale lokale-anesthesiedosis (4,5–7 mg/kg) en de antiaritmische oplaaddosis (~1 mg/kg), geen aparte tekst voor het peroperatieve IV-lidocaïne-infuusprotocol. App-waarde komt overeen met gepubliceerde ERAS-protocollen (bolus + infuus), ruim binnen FK's veiligheidsgrens." } },
+  { groep: "Antibiotica", med: "Cefazoline", concentratie: "100 mg/ml (2 g in 20 ml NaCl 0,9%)", inductie: "1–2 g (3g bij BMI >40)", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 2 g standaard profylaxe (1 g als de wond binnen 1 uur gesloten wordt); 3 g bij BMI>40 is een bekende WIP/SWAB-aanpassing — consistent." } },
+  { groep: "Antifibrinolytica", med: "Tranexaminezuur", concentratie: "100 mg/ml", inductie: "10–15 mg/kg", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 15 mg/kg IV (doorgaans 1 g); app's iets ruimere bereik (10–15 mg/kg) is gangbare chirurgische praktijk." } },
+  { groep: "Analgetica niet-opioïd", med: "Paracetamol", concentratie: "10 mg/ml", inductie: "1 g IV", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 1000 mg IV bij >50 kg — exacte match." } },
+  { groep: "Analgetica niet-opioïd", med: "Metamizol", concentratie: "500 mg/ml", inductie: "0,5–1 g IV", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "AANGEPAST (was 1–2,5 g — de bovengrens van 2,5 g per gift overschreed de FK-maximale enkele dosis aanzienlijk). FK: 0,5–1 g per gift, max 4x/dag (max 4 g/dag)." } },
+  { groep: "Antiemetica", med: "Ondansetron", concentratie: "2 mg/ml", inductie: "4 mg IV", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 4 mg IV (tot 8 mg bij ≥75 jr) — exacte match." } },
+  { groep: "Antiemetica", med: "Dexamethason", concentratie: "4 mg/ml", inductie: "4–8 mg IV", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK noemt voor PONV-preventie 4–40 mg, met 8 mg als meest gebruikte dosis — dekt het app-bereik." } },
+  { groep: "Antiemetica", med: "Droperidol", concentratie: "2,5 mg/ml", inductie: "0,625–1,25 mg IV", onderhoud: "n.v.t.",
+    bron: { status: "✅", tekst: "FK: 0,625–1,25 mg IV — exacte match." } },
 ];
 
 // Gedetailleerde geneesmiddelentabel AMC (T.M.S. van Winden, 2016)
@@ -2878,10 +2905,33 @@ function ZakkaartApp() {
           {MEDICATIE_STANDAARD.map((m, i) => (
             <TableRow key={i} cells={[
               <div>
-                <div>{m.med}</div>
+                <div>
+                  {m.med}
+                  {m.bron && (
+                    <span
+                      onClick={() => setOpenBronMed(openBronMed === m.med ? null : m.med)}
+                      style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: "16px", height: "16px", marginLeft: "6px",
+                        borderRadius: "50%", border: "1px solid #666", color: "#888",
+                        fontSize: "10px", fontStyle: "italic", fontWeight: 700,
+                        cursor: "pointer", verticalAlign: "middle",
+                      }}
+                    >i</span>
+                  )}
+                </div>
                 {m.concentratie && (
                   <div style={{ fontSize: "10px", color: "#888", fontWeight: 400, marginTop: "2px", lineHeight: 1.3 }}>
                     {m.concentratie}
+                  </div>
+                )}
+                {m.bron && openBronMed === m.med && (
+                  <div style={{
+                    fontSize: "11px", color: "#aaa", marginTop: "6px", padding: "6px 8px",
+                    background: "rgba(255,255,255,0.04)", borderRadius: "6px", maxWidth: "260px",
+                  }}>
+                    <span style={{ marginRight: "4px" }}>{m.bron.status}</span>
+                    {m.bron.tekst}
                   </div>
                 )}
               </div>,
@@ -4242,7 +4292,7 @@ function ZakkaartApp() {
           boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px ${settings.accentKleur}20`,
         }}>
           {/* Titel */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
             <div style={{
               width: "8px", height: "8px", borderRadius: "50%",
               background: settings.accentKleur, flexShrink: 0,
@@ -4251,13 +4301,25 @@ function ZakkaartApp() {
             <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff", letterSpacing: "0.5px" }}>
               {t("Kinderdosering", "Pediatric dosing")}
             </div>
-            <div style={{ fontSize: "11px", color: "#555", marginLeft: "auto" }}>
-              {t("Rol om in te stellen", "Scroll to set")}
-            </div>
+            {calcWeight && (
+              <button
+                onClick={() => setShowOverzichtskaart(v => !v)}
+                title={t("Overzichtskaart", "Summary card")}
+                style={{
+                  marginLeft: "auto", width: "26px", height: "26px", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: showOverzichtskaart ? `${settings.accentKleur}22` : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${showOverzichtskaart ? settings.accentKleur : "rgba(255,255,255,0.12)"}`,
+                  borderRadius: "8px", fontSize: "13px", cursor: "pointer",
+                  boxShadow: showOverzichtskaart ? `0 0 10px ${settings.accentKleur}35` : "none",
+                  transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s",
+                }}
+              >📋</button>
+            )}
           </div>
 
           {/* Rollers */}
-          <div style={{ display: "flex", gap: "10px", alignItems: "stretch" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "stretch" }}>
             {/* Leeftijd */}
             <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", borderRadius: "12px", padding: "8px 6px 4px" }}>
               <div style={{ fontSize: "11px", fontWeight: 700, color: settings.accentKleur, textTransform: "uppercase", letterSpacing: "1px", textAlign: "center", marginBottom: "6px" }}>
@@ -4302,24 +4364,6 @@ function ZakkaartApp() {
               {!gewichtManual && <span style={{ fontSize: "10px", color: "#444", marginLeft: "4px" }}>std</span>}
             </span>
           </div>
-
-          {/* Overzichtskaart toggle */}
-          {calcWeight && (
-            <button
-              onClick={() => setShowOverzichtskaart(v => !v)}
-              style={{
-                width: "100%", marginTop: "8px", padding: "9px 12px",
-                background: showOverzichtskaart ? `${settings.accentKleur}20` : "rgba(255,255,255,0.04)",
-                border: `1px solid ${showOverzichtskaart ? settings.accentKleur : "rgba(255,255,255,0.1)"}`,
-                borderRadius: "8px", color: showOverzichtskaart ? settings.accentKleur : "#aaa",
-                fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                cursor: "pointer",
-              }}
-            >
-              📋 {t("Overzichtskaart", "Summary card")} {showOverzichtskaart ? "▲" : "▼"}
-            </button>
-          )}
         </div>
 
         {/* Overzichtskaart: compacte samenvatting van kernwaarden per fase */}
