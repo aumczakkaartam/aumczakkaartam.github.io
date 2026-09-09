@@ -1810,8 +1810,9 @@ const KINDER_CALC_MEDS = [
     bron: { status: "✅", tekst: "Farmacotherapeutisch Kompas" } },
   { med: "Remifentanil (bolus)", factor: 1, unit: "µg", range: "1 µg/kg (niet aanbevolen <1 jaar)", categorie: "Opioïden",
     bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas" } },
-  { med: "Remifentanil (infuus, start)", factor: 0.25, unit: "µg/min", range: "0,25 µg/kg/min, titreren elke 2-5 min (niet aanbevolen <1 jaar)", categorie: "Opioïden",
-    bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas" } },
+  // pompConc: standaard ampulconcentratie 50 µg/ml (AMC-overzicht) — pas aan als de afdeling een andere verdunning gebruikt
+  { med: "Remifentanil (infuus, start)", factor: 0.25, unit: "µg/min", range: "0,25 µg/kg/min, titreren elke 2-5 min (niet aanbevolen <1 jaar)", categorie: "Opioïden", pompConc: 50,
+    bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas; pompstand gebaseerd op AMC-ampulconcentratie 50 µg/ml — verifieer lokale verdunning" } },
   { med: "Morfine", factor: 0.1, unit: "mg", range: "0,05–0,1 mg/kg", categorie: "Opioïden",
     bron: { status: "🟡", tekst: "Nog niet sluitend extern bevestigd — voorleggen aan anesthesioloog/apotheker" } },
   { med: "Rocuronium", factor: 0.6, unit: "mg", range: "0,6 mg/kg", categorie: "Relaxantia",
@@ -4323,6 +4324,11 @@ function ZakkaartApp() {
                 const propLabel = !hasAge ? null : age < 3 ? "<3 jr → 1%" : (m.perUur ? "≥3 jr, onderhoud → 2%" : "≥3 jr, inductie → 1%");
                 const propMl = propConc ? dosis / propConc : null;
                 const propMlStr = propMl != null ? (propMl < 1 ? propMl.toFixed(2) : propMl < 10 ? propMl.toFixed(1) : propMl.toFixed(0)) : null;
+                // Generieke pompstand (ml/uur) voor infuusmiddelen met een vaste spuitconcentratie (m.pompConc, in dezelfde eenheid als m.unit)
+                const pompMlUur = m.pompConc
+                  ? (m.unit.endsWith("/min") ? (dosis * 60) / m.pompConc : m.unit.endsWith("/uur") ? dosis / m.pompConc : null)
+                  : null;
+                const pompMlUurStr = pompMlUur != null ? (pompMlUur < 1 ? pompMlUur.toFixed(2) : pompMlUur < 10 ? pompMlUur.toFixed(1) : pompMlUur.toFixed(0)) : null;
                 return (
                   <div key={i} style={{
                     display: "flex",
@@ -4395,6 +4401,11 @@ function ZakkaartApp() {
                       {propMlStr && (
                         <div style={{ fontSize: "11px", color: "#F5C518", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, marginTop: "2px" }}>
                           {propMlStr} <span style={{ fontSize: "10px", color: "#888", fontWeight: 400 }}>ml{m.perUur ? "/uur" : ""}</span>
+                        </div>
+                      )}
+                      {pompMlUurStr && (
+                        <div style={{ fontSize: "11px", color: "#F5C518", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, marginTop: "2px" }}>
+                          {pompMlUurStr} <span style={{ fontSize: "10px", color: "#888", fontWeight: 400 }}>ml/uur (bij {m.pompConc} {m.unit.split("/")[0]}/ml)</span>
                         </div>
                       )}
                     </div>
