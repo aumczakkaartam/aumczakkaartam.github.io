@@ -1401,13 +1401,35 @@ const KINDER_FORMULES = [
   { formule: "Normaal gewicht kind (kg)", berekening: "2,5 × leeftijd + 8" },
 ];
 
+// Bron: Protocol perioperatief vochtbeleid kinderen (JAW Polderman, Amsterdam UMC, v4.1, 2025)
 const KINDER_VOCHT = [
   { item: "Circulerend vol. prematuur", waarde: "100 ml/kg" },
   { item: "Circulerend vol. >1 jr", waarde: "70 ml/kg" },
-  { item: "Onderhoud 1e half uur", waarde: "10 ml/kg" },
-  { item: "Onderhoud daarna", waarde: "4:2:1 regel" },
-  { item: "Vochtbolus", waarde: "10–20 ml/kg (herhalen zo nodig)" },
-  { item: "Glucose pomp", waarde: "2–8 mg/kg/min" },
+  { item: "Onderhoud 1e uur (<1 jaar)", waarde: "10 ml/kg/uur" },
+  { item: "Onderhoud daarna (4-2-1 regel)", waarde: "zie Calculator" },
+  { item: "Vochtbolus", waarde: "10 ml/kg" },
+  { item: "Bloedproducten bij hemodilutie", waarde: "10 ml/kg (grote ingrepen)" },
+  { item: "Glucose 10%", waarde: "zie Calculator — alleen <1jr/risicofactoren/>2u ingreep" },
+];
+
+// Bron: APS Handboek 2026, Amsterdam UMC — PCA morfine/piritramide instellingen
+const PCA_INSTELLINGEN = [
+  { groep: "Volwassene", bolus: "1 ml = 1 mg", achtergrond: "geen", lockout: "5 min", max4u: "30 mg" },
+  { groep: "Kind >50 kg", bolus: "1 ml = 1 mg", achtergrond: "geen", lockout: "5 min", max4u: "20 mg" },
+  { groep: "Kind 19–49 kg", bolus: "20 µg/kg", achtergrond: "6 µg/kg/uur", lockout: "5 min", max4u: "400 µg/kg" },
+];
+
+// Bron: Protocol perioperatief vochtbeleid kinderen (JAW Polderman, Amsterdam UMC, v4.1, 2025)
+const HYPOGLYKEMIE_RISICO = [
+  "Lage glycogeenreserves (ex-prematuur <60 weken postconceptioneel, dysmature neonaat 1e 48u, leverziekte)",
+  "Langdurig nuchter geweest",
+  "Cachexie (<3e centile)",
+  "Metabole stoornissen",
+  "Ernstige infecties of sepsis",
+  "Lange operatie (>180 min)",
+  "Postoperatief geen enterale intake mogelijk",
+  "Extensief regionaal blok (bv. epiduraal)",
+  "Langdurige TPV (hogere glucosebehoefte)",
 ];
 
 // Checklist kinderanesthesie — AUMC, locatie AMC
@@ -1813,44 +1835,66 @@ const KINDER_CALC_MEDS = [
   // pompConc: standaard ampulconcentratie 50 µg/ml (AMC-overzicht) — pas aan als de afdeling een andere verdunning gebruikt
   { med: "Remifentanil (infuus, start)", factor: 0.25, unit: "µg/min", range: "0,25 µg/kg/min, titreren elke 2-5 min (niet aanbevolen <1 jaar)", categorie: "Opioïden", pompConc: 50,
     bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas; pompstand gebaseerd op AMC-ampulconcentratie 50 µg/ml — verifieer lokale verdunning" } },
-  { med: "Morfine", factor: 0.1, unit: "mg", range: "0,05–0,1 mg/kg", categorie: "Opioïden",
-    bron: { status: "🟡", tekst: "Nog niet sluitend extern bevestigd — voorleggen aan anesthesioloog/apotheker" } },
-  { med: "Rocuronium", factor: 0.6, unit: "mg", range: "0,6 mg/kg", categorie: "Relaxantia",
-    bron: { status: "🟠", tekst: "Basisdosis bevestigd (KF/FK/AMC); vervolgdosis (0,15 mg/kg) en RSI-optie (tot 1,2 mg/kg) ontbreken nog" } },
+  { med: "Morfine", factor: 0.1, unit: "mg", range: "0,05–0,1 mg/kg (of 0,1–0,2 mg/kg, max 15 mg per gift)", categorie: "Opioïden",
+    bron: { status: "✅", tekst: "Kinderformularium.nl: IV bolus 0,05-0,1 mg/kg of 0,1-0,2 mg/kg (max 15 mg), elke 4 uur te herhalen" } },
+  { med: "Rocuronium (inductie)", factor: 0.6, unit: "mg", range: "0,6 mg/kg (tot 1,2 mg/kg bij RSI)", categorie: "Relaxantia",
+    bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas + AMC-overzicht" } },
+  { med: "Rocuronium (vervolgdosis)", factor: 0.15, unit: "mg", range: "0,15 mg/kg (0,075–0,1 mg/kg bij >1 uur inhalatieanesthesie)", categorie: "Relaxantia",
+    bron: { status: "✅", tekst: "Farmacotherapeutisch Kompas" } },
   { med: "S-Ketamine", factor: 0.75, unit: "mg", range: "0,5–1 mg/kg", categorie: "Anesthetica",
     bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas" } },
-  { med: "Paracetamol", factor: 15, unit: "mg", range: "15 mg/kg", categorie: "Analgetica",
-    bron: { status: "🔴", tekst: "Kinderformularium: 7,5 mg/kg bij ≤10 kg, pas 15 mg/kg vanaf 10 kg — gewichtsdrempel ontbreekt nog in de calculator" } },
+  { med: "Paracetamol", factor: 15, unit: "mg", range: "15 mg/kg (>10 kg) / 7,5 mg/kg (≤10 kg)", categorie: "Analgetica",
+    bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas — gewichtsdrempel nu verwerkt in de berekening" } },
   { med: "Metamizol", factor: 15, unit: "mg", range: "15 mg/kg", categorie: "Analgetica",
     bron: { status: "✅", tekst: "Kinderformularium.nl (8–16 mg/kg)" } },
-  { med: "Cefazoline", factor: 30, unit: "mg", range: "30 mg/kg", categorie: "Antibiotica",
-    bron: { status: "🟠", tekst: "Bronnen tegenstrijdig (10 vs. 25-100 mg/kg/dag) — navragen bij ziekenhuisapotheek/microbioloog" } },
-  { med: "Metronidazol", factor: 15, unit: "mg", range: "15 mg/kg", categorie: "Antibiotica",
-    bron: { status: "🟡", tekst: "Gevonden KF-cijfer betrof mogelijk andere indicatie — niet goed vergelijkbaar" } },
-  { med: "Amoxicilline", factor: 50, unit: "mg", range: "50 mg/kg (verifieer AUMC)", categorie: "Antibiotica",
-    bron: { status: "🔴", tekst: "Kinderformularium geeft 50-90 mg/kg/DAG verdeeld over 3 doses — als eenmalige dosis mogelijk te hoog, verifieer lokaal protocol" } },
+  { med: "Cefazoline", factor: 30, unit: "mg", range: "30 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
+    bron: { status: "🟠", tekst: "SWAB-richtlijn geeft tegenstrijdige cijfers in verschillende bronvermeldingen (10 mg/kg max 1g vs. 30 mg/kg max 2g) — kon niet worden geadjudiceerd. Juiste bron is de 'Blauwdruk pediatrische antimicrobiële therapie' (niet toegankelijk vanuit deze omgeving) — navragen bij ziekenhuisapotheek/microbioloog" } },
+  { med: "Metronidazol", factor: 15, unit: "mg", range: "15 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
+    bron: { status: "🟡", tekst: "Perioperatieve profylaxedosis bij kinderen niet gevonden los van de niet-toegankelijke 'Blauwdruk pediatrische antimicrobiële therapie' — gevonden KF-cijfer (50 mg/kg/dag) betrof een andere indicatie" } },
+  { med: "Amoxicilline", factor: 50, unit: "mg", range: "50 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
+    bron: { status: "🔴", tekst: "Kinderformularium geeft 50-90 mg/kg/DAG verdeeld over 3 doses voor behandeling — als eenmalige profylaxedosis mogelijk te hoog. Officiële profylaxedosis staat vermoedelijk in de niet-toegankelijke 'Blauwdruk pediatrische antimicrobiële therapie' — verifieer bij ziekenhuisapotheek" } },
   { med: "Dexamethason", factor: 0.15, unit: "mg", range: "0,15 mg/kg", categorie: "Corticosteroïden",
-    bron: { status: "🟡", tekst: "Gangbare anesthesie-PONV-dosis, niet expliciet via Kinderformularium bevestigd" } },
+    bron: { status: "🟡", tekst: "PONV-indicatie bevestigd via Kinderformularium/richtlijnendatabase.nl, maar geen directe KF-quote gevonden voor het exacte 0,15 mg/kg-cijfer (wel een vaste 8-10 mg volwassendosis)" } },
   { med: "Adrenaline (nood)", factor: 0.01, unit: "mg", range: "0,01 mg/kg", categorie: "Noodmedicatie",
     bron: { status: "✅", tekst: "Kinderformularium.nl + Reanimatieraad (10 µg/kg)" } },
   { med: "Atropine (nood)", factor: 0.02, unit: "mg", range: "0,02 mg/kg (min 0,1 max 0,5)", categorie: "Noodmedicatie",
     bron: { status: "✅", tekst: "Kinderformularium.nl (0,01-0,02 mg/kg)" } },
-  { med: "Efedrine", factor: 0.1, unit: "mg", range: "0,1–0,2 mg/kg", categorie: "Noodmedicatie",
-    bron: { status: "🟡", tekst: "Kinderformularium: niet geregistreerd voor kinderen (off-label) — cijfer plausibel maar off-labelstatus niet elders vermeld" } },
-  { med: "Fenylefrine", factor: 1, unit: "µg", range: "1–5 µg/kg", categorie: "Noodmedicatie",
-    bron: { status: "🟡", tekst: "Alleen oogdruppel-dosering gevonden op Kinderformularium, geen IV-pressordosis" } },
+  { med: "Efedrine", factor: 0.1, unit: "mg", range: "0,1–0,2 mg/kg (off-label, niet geregistreerd <12 jaar)", categorie: "Noodmedicatie",
+    bron: { status: "🟠", tekst: "Cijfer bevestigd in de literatuur (0,1-0,2 mg/kg per injectie); niet geregistreerd voor kinderen <12 jaar, dus off-labelgebruik — nu vermeld in de app" } },
+  { med: "Fenylefrine", factor: 1, unit: "µg", range: "1–5 µg/kg (off-label, geen officiële pediatrische dosis)", categorie: "Noodmedicatie",
+    bron: { status: "🟡", tekst: "Bevestigd: fenylefrine is niet geregistreerd voor kinderen en er bestaat geen officiële pediatrische mg/kg-dosis in KF/FK — huidig cijfer is een praktijkextrapolatie, off-label, verifieer bij anesthesioloog" } },
   { med: "Ondansetron", factor: 0.1, unit: "mg", range: "0,1 mg/kg (max 4 mg)", categorie: "Antiemetica",
     bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas (PONV-indicatie)" } },
-  { med: "Droperidol", factor: 0.015, unit: "mg", range: "0,01–0,02 mg/kg", categorie: "Antiemetica",
-    bron: { status: "🟡", tekst: "Consistent met bredere literatuur (0,01-0,05 mg/kg), geen directe KF-pagina gevonden" } },
-  { med: "Tranexaminezuur", factor: 15, unit: "mg", range: "10–15 mg/kg (max 1 g)", categorie: "Antifibrinolytica",
-    bron: { status: "🟠", tekst: "Laaddosis bevestigd via richtlijnendatabase.nl; onderhoudsinfuus (3-5 mg/kg/uur) ontbreekt nog" } },
-  { med: "Erytrocytenconcentraat (bloed)", factor: 10, unit: "ml", range: "10–15 ml/kg", categorie: "Transfusie",
-    bron: { status: "🟡", tekst: "Bloedproduct — valt onder lokaal transfusiebeleid, niet extern verifieerbaar" } },
+  { med: "Droperidol", factor: 0.015, unit: "mg", range: "0,01–0,02 mg/kg (bereik 0,01-0,05 mg/kg, max 1,25 mg)", categorie: "Antiemetica",
+    bron: { status: "✅", tekst: "Meerdere onafhankelijke bronnen bevestigen 10-50 µg/kg (max 1,25 mg) voor 2-18 jr, niet aanbevolen <2 jr — huidige waarde valt hierbinnen" } },
+  { med: "Tranexaminezuur (laaddosis)", factor: 15, unit: "mg", range: "10–15 mg/kg (max 1 g)", categorie: "Antifibrinolytica",
+    bron: { status: "✅", tekst: "Richtlijnendatabase.nl" } },
+  { med: "Tranexaminezuur (onderhoud)", factor: 4, unit: "mg/uur", range: "3–5 mg/kg/uur na de laaddosis", categorie: "Antifibrinolytica", perUur: true,
+    bron: { status: "✅", tekst: "Richtlijnendatabase.nl" } },
+  { med: "Erytrocytenconcentraat (anemie, geen bloedverlies)", factor: 15, unit: "ml", range: "15 ml/kg", categorie: "Transfusie",
+    bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025). Bij ongoing/massaal bloedverlies: transfunderen volgens 1:1:1-ratio massaal transfusieprotocol i.p.v. dit getal — zie Spoedbundel Kind." } },
+  { med: "Sugammadex (T2-reversal)", factor: 2, unit: "mg", range: "2 mg/kg (standaard reversal, ≥2 jaar)", categorie: "Antagonisten",
+    bron: { status: "✅", tekst: "Farmacotherapeutisch Kompas + AMC-overzicht" } },
+  { med: "Sugammadex (noodgeval)", factor: 16, unit: "mg", range: "16 mg/kg (acute reversal zonder T2-respons)", categorie: "Antagonisten",
+    bron: { status: "✅", tekst: "Kinderformularium.nl + AMC-overzicht" } },
   { med: "Glycopyrronium", factor: 0.01, unit: "mg", range: "0,004–0,01 mg/kg (4–10 µg/kg)", categorie: "Anticholinergica",
     bron: { status: "✅", tekst: "AMC-overzicht (T.M.S. van Winden, 2016) + Kinderformularium.nl" } },
-  { med: "Glucose 10% (infuus)", factor: 3, unit: "ml/uur", range: "≈5 mg/kg/min GIR (bereik 2–8) → ≈3 ml/kg/uur — vooral <1 jr, i.o. anesthesioloog", categorie: "Vocht/glucose",
-    bron: { status: "🟡", tekst: "Algemene GIR-literatuur (Cornell PICU, NICU-richtlijnen), niet ziekenhuisspecifiek bevestigd. Leeftijdsindicatie (<1 jr, i.o. anesthesioloog) uit de app zelf (sectie Vocht)." } },
+  // AUMC-protocol: NIET standaard geven bij ingrepen <2 uur zonder risicofactoren voor hypoglykemie
+  { med: "Glucose 10% — neonaat (tot 28 dagen)", factor: 0.9, unit: "ml/uur", range: "1–2 mg/kg/min = 0,6–1,2 ml/kg/uur", categorie: "Vocht/glucose", perUur: true,
+    bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
+  { med: "Glucose 10% — kind <1jr of risicofactoren", factor: 0.6, unit: "ml/uur", range: "1 mg/kg/min = 0,6 ml/kg/uur — alleen bij <1 jr, risicofactoren hypoglykemie, ingreep >2u, of metabole stoornis; NIET standaard bij korte ingrepen", categorie: "Vocht/glucose", perUur: true,
+    bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
+  { med: "Glucose 10% — bolus bij hypoglykemie", factor: 2, unit: "ml", range: "2 ml/kg bij glucose <3,5 mmol/L (neonaten <2,6 mmol/L) + onderhoud ophogen", categorie: "Vocht/glucose",
+    bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
+  { med: "Onderhoudsvocht — eerste uur (<1 jaar)", factor: 10, unit: "ml/uur", range: "10 ml/kg/uur, alleen het eerste uur bij kinderen <1 jaar (compensatie nuchter zijn)", categorie: "Vocht/glucose", perUur: true,
+    bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
+  { med: "Onderhoudsvocht (4-2-1 regel, na 1e uur)", factor: 1, unit: "ml/uur", range: "4 ml/kg/u (eerste 10kg) + 2 ml/kg/u (tweede 10kg) + 1 ml/kg/u (>20kg)", categorie: "Vocht/glucose", is421: true,
+    bron: { status: "✅", tekst: "Holliday-Segar-regel — AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
+  // Bron APS Handboek 2026, Amsterdam UMC — continue toediening kind (buiten PCA-context)
+  { med: "Morfine/Piritramide (continu, kind >1 mnd)", factor: 10, unit: "µg/uur", range: "10 µg/kg/uur, zn. ophogen tot 40 µg/kg/uur", categorie: "Opioïden", perUur: true,
+    bron: { status: "✅", tekst: "APS Handboek 2026, Amsterdam UMC — kinderen prematuur t/m 1 maand à terme: lagere startdosis 5 µg/kg/uur" } },
+  { med: "Tramadol (bij epiduraal-afbouw, kind <10jr/40kg)", factor: 1, unit: "mg", range: "1 mg/kg, 4dd zo nodig", categorie: "Opioïden",
+    bron: { status: "✅", tekst: "APS Handboek 2026, Amsterdam UMC" } },
 ];
 
 const ANTIEMETICA = [
@@ -3318,6 +3362,41 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
+      <Collapse title="Hypoglykemie-risicogroepen (wanneer glucose 10% geven)" color="#F39C12">
+        <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
+          Bij ingrepen &lt;2 uur zonder onderstaande risicofactoren is glucose 10% niet standaard nodig.
+        </div>
+        {HYPOGLYKEMIE_RISICO.map((r, i) => (
+          <div key={i} style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            padding: "6px 0",
+            borderBottom: i < HYPOGLYKEMIE_RISICO.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+          }}>
+            <span style={{ color: "#F39C12", flexShrink: 0 }}>•</span>
+            <span style={{ color: "#ccc", fontSize: "13px" }}>{r}</span>
+          </div>
+        ))}
+      </Collapse>
+      <Collapse title="PCA-instellingen (morfine/piritramide)" color="#F39C12">
+        <div style={{ overflowX: "auto" }}>
+          <TableRow cells={["Groep", "Bolus", "Achtergrond", "Lock-out", "4u max"]} header />
+          {PCA_INSTELLINGEN.map((p, i) => (
+            <TableRow key={i} cells={[p.groep, p.bolus, p.achtergrond, p.lockout, p.max4u]} />
+          ))}
+        </div>
+        <div style={{ fontSize: "11px", color: "#888", marginTop: "8px" }}>
+          Let op: er moet altijd een achtergrondinfuus (min. 5 ml/h) + terugslagklep aangesloten zijn naast een PCA-pomp. Bron: APS Handboek 2026, Amsterdam UMC.
+        </div>
+      </Collapse>
+      <Collapse title="Naloxon bij ademdepressie" color="#E74C3C">
+        <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
+          <div>Staak medicijntoediening, meet sedatiescore + SpO2.</div>
+          <div style={{ marginTop: "6px" }}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#E74C3C", fontWeight: 700 }}>0,2–0,4 mg IV</span>, titreren naar effect tot max. 1 mg.</div>
+          <div style={{ marginTop: "4px", fontSize: "12px", color: "#888" }}>Op verkoever: verdunnen met 9 ml NaCl 0,9% en titreren met 1-2 ml (= 0,04-0,08 mg) per keer. Geen verbetering → overleg supervisor/zaalarts.</div>
+        </div>
+      </Collapse>
       <Collapse title="Normaalwaarden vitale parameters" color="#F39C12">
         <div style={{ overflowX: "auto" }}>
           <TableRow cells={["Leeftijd", "Pols", "SBD ↓", "Adem/min"]} header />
@@ -4311,6 +4390,16 @@ function ZakkaartApp() {
                 // Clamp atropine
                 if (m.med.includes("Atropine")) {
                   dosis = Math.max(0.1, Math.min(0.5, dosis));
+                }
+                // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
+                if (m.med === "Paracetamol" && calcWeight <= 10) {
+                  dosis = calcWeight * 7.5;
+                }
+                // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
+                if (m.is421) {
+                  dosis = calcWeight <= 10 ? calcWeight * 4
+                    : calcWeight <= 20 ? 10 * 4 + (calcWeight - 10) * 2
+                    : 10 * 4 + 10 * 2 + (calcWeight - 20) * 1;
                 }
                 const dosisStr = dosis < 1 ? dosis.toFixed(2) : dosis < 10 ? dosis.toFixed(1) : dosis.toFixed(0);
                 const medKleur = getMedKleur(m.med);
