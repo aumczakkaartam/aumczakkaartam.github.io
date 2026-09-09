@@ -189,6 +189,11 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
   const itemH = 44;
   const visible = 3;
   const pad = 1;
+  // Onthoudt of de laatste selectedIndex-wijziging van de eigen scroll/tik kwam.
+  // Zo niet corrigeren we de scrollpositie NIET tijdens een lopende scrollbeweging
+  // van de gebruiker (dat gaf het "heen en weer"-gehaper) — alleen bij een externe
+  // wijziging (bv. de leeftijd-roller die het gewicht automatisch aanpast).
+  const isInternalChange = useRef(false);
 
   const paddedItems = [
     ...Array(pad).fill({ label: "", isPad: true }),
@@ -197,10 +202,11 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
   ];
 
   useEffect(() => {
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
     if (ref.current) {
-      // Sync scrollpositie bij externe (programmatische) wijziging van selectedIndex,
-      // bv. als de leeftijd-roller het gewicht automatisch aanpast. Niet vechten met
-      // de eigen scroll van de gebruiker: alleen bijsturen als 'ie niet al goed staat.
       const current = Math.round(ref.current.scrollTop / itemH);
       if (current !== selectedIndex) ref.current.scrollTop = selectedIndex * itemH;
     }
@@ -210,7 +216,10 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
     if (!ref.current) return;
     const idx = Math.round(ref.current.scrollTop / itemH);
     const clamped = Math.max(0, Math.min(idx, items.length - 1));
-    if (clamped !== selectedIndex) onIndexChange(clamped);
+    if (clamped !== selectedIndex) {
+      isInternalChange.current = true;
+      onIndexChange(clamped);
+    }
   };
 
   return (
@@ -250,6 +259,7 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
               key={i}
               onClick={() => {
                 if (item.isPad) return;
+                isInternalChange.current = true;
                 onIndexChange(realIdx);
                 if (ref.current) ref.current.scrollTop = realIdx * itemH;
               }}
@@ -261,9 +271,8 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#2EC
                 fontWeight: isSelected ? 700 : 400,
                 color: isSelected ? "#fff" : "#444",
                 fontFamily: "'JetBrains Mono', monospace",
-                transform: isSelected ? "scale(1.06)" : "scale(1)",
-                textShadow: isSelected ? `0 0 16px ${accentColor}60` : "none",
-                transition: "transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), font-size 0.15s, color 0.15s, text-shadow 0.15s",
+                textShadow: isSelected ? `0 0 14px ${accentColor}50` : "none",
+                transition: "font-size 0.12s ease-out, color 0.12s ease-out, text-shadow 0.12s ease-out",
               }}
             >
               {!item.isPad ? item.label : ""}
