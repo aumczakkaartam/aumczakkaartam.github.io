@@ -980,6 +980,25 @@ const ABCDE = [
   },
 ];
 
+// LAST = Local Anesthetic Systemic Toxicity. Bron: AAGBI Guidelines for the Management
+// of Severe Local Anaesthetic Toxicity (2010) + ASRA Practice Advisory — internationaal
+// gestandaardiseerd noodprotocol, niet AUMC-specifiek. Vooral relevant bij volwassenen
+// (lokale blokken bij kinderen worden doorgaans door de anesthesioloog zelf uitgevoerd).
+const LAST_PROTOCOL = {
+  stappen: [
+    "Stop toediening lokaal anestheticum, roep hulp, noteer tijdstip",
+    "Luchtweg vrijmaken, 100% O2, voorkom hypoxie en acidose",
+    "Insulten couperen: benzodiazepine (bv. midazolam)",
+    "Ritmestoornissen: standaard ALS, maar VERMIJD lidocaïne, calciumantagonisten, bètablokkers en vasopressine — kunnen therapieresistentie verergeren",
+    "Bij circulatoire instabiliteit of arrest: start IV lipidemulsie (Intralipid 20%) direct, naast reanimatie",
+  ],
+  intralipid: [
+    { stap: "Bolus", dosis: "1,5 ml/kg (20%) IV over ~1 min", opmerking: "Herhalen tot 2x bij onvoldoende effect (interval ~5 min)" },
+    { stap: "Onderhoudsinfuus", dosis: "15 ml/kg/uur", opmerking: "Verdubbel naar 30 ml/kg/uur bij aanhoudende hypotensie" },
+    { stap: "Maximale cumulatieve dosis", dosis: "12 ml/kg", opmerking: "Richtwaarde AAGBI" },
+  ],
+};
+
 const MEDICATIE_STANDAARD = [
   { groep: "Anesthetica", med: "Propofol", concentratie: "10 mg/ml (1%) <3 jr · 20 mg/ml (2%) ≥3 jr", inductie: "1–2,5 mg/kg", onderhoud: "4–12 mg/kg/uur" },
   { groep: "Anesthetica", med: "Thiopental", concentratie: "25 mg/ml", inductie: "3–5 mg/kg", onderhoud: "n.v.t." },
@@ -1830,8 +1849,6 @@ const KINDER_CALC_MEDS = [
     bron: { status: "✅", tekst: "Farmacotherapeutisch Kompas" } },
   { med: "Sufentanyl (onderhoud, oplaad)", factor: 1, unit: "µg", range: "0,3–2 µg/kg oplaad + 0,1–1 µg/kg aanvullend (max 5 totaal bij hartchirurgie)", categorie: "Opioïden",
     bron: { status: "✅", tekst: "Farmacotherapeutisch Kompas" } },
-  { med: "Remifentanil (bolus)", factor: 1, unit: "µg", range: "1 µg/kg (niet aanbevolen <1 jaar)", categorie: "Opioïden",
-    bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas" } },
   // pompConc: standaard ampulconcentratie 50 µg/ml (AMC-overzicht) — pas aan als de afdeling een andere verdunning gebruikt
   { med: "Remifentanil (infuus, start)", factor: 0.25, unit: "µg/min", range: "0,25 µg/kg/min, titreren elke 2-5 min (niet aanbevolen <1 jaar)", categorie: "Opioïden", pompConc: 50,
     bron: { status: "✅", tekst: "Kinderformularium.nl + Farmacotherapeutisch Kompas; pompstand gebaseerd op AMC-ampulconcentratie 50 µg/ml — verifieer lokale verdunning" } },
@@ -1890,11 +1907,6 @@ const KINDER_CALC_MEDS = [
     bron: { status: "✅", tekst: "AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
   { med: "Onderhoudsvocht (4-2-1 regel, na 1e uur)", factor: 1, unit: "ml/uur", range: "4 ml/kg/u (eerste 10kg) + 2 ml/kg/u (tweede 10kg) + 1 ml/kg/u (>20kg)", categorie: "Vocht/glucose", is421: true,
     bron: { status: "✅", tekst: "Holliday-Segar-regel — AUMC-protocol Perioperatief vochtbeleid kinderen (JAW Polderman, v4.1, 2025)" } },
-  // Bron APS Handboek 2026, Amsterdam UMC — continue toediening kind (buiten PCA-context)
-  { med: "Morfine/Piritramide (continu, kind >1 mnd)", factor: 10, unit: "µg/uur", range: "10 µg/kg/uur, zn. ophogen tot 40 µg/kg/uur", categorie: "Opioïden", perUur: true,
-    bron: { status: "✅", tekst: "APS Handboek 2026, Amsterdam UMC — kinderen prematuur t/m 1 maand à terme: lagere startdosis 5 µg/kg/uur" } },
-  { med: "Tramadol (bij epiduraal-afbouw, kind <10jr/40kg)", factor: 1, unit: "mg", range: "1 mg/kg, 4dd zo nodig", categorie: "Opioïden",
-    bron: { status: "✅", tekst: "APS Handboek 2026, Amsterdam UMC" } },
 ];
 
 const ANTIEMETICA = [
@@ -2274,6 +2286,8 @@ function ZakkaartApp() {
   const t = (nl, en) => settings.taal === "en" ? en : nl;
   const [leidingOpen, setLeidingOpen] = useState(false);
   const [openBronMed, setOpenBronMed] = useState(null);
+  const [showDetailBron, setShowDetailBron] = useState(false);
+  const [showOverzichtskaart, setShowOverzichtskaart] = useState(false);
   const [selectedBuis, setSelectedBuis] = useState(null);
   const [ecgTab, setEcgTab] = useState("patronen");
   const contentRef = useRef(null);
@@ -2878,6 +2892,61 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
+      <Collapse title="LAST — toxiciteit lokaal anestheticum (Intralipid)" color="#E74C3C">
+        <div style={{ fontSize: "11px", color: "#888", marginBottom: "10px" }}>
+          Internationaal gestandaardiseerd noodprotocol (AAGBI/ASRA), niet AUMC-specifiek. Vooral van toepassing bij volwassenen.
+        </div>
+        {LAST_PROTOCOL.stappen.map((s, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "flex-start", gap: "8px", padding: "6px 0",
+            borderBottom: i < LAST_PROTOCOL.stappen.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+          }}>
+            <span style={{ color: "#E74C3C", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+            <span style={{ color: "#ccc", fontSize: "13px" }}>{s}</span>
+          </div>
+        ))}
+        <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", margin: "14px 0 8px" }}>
+          Intralipid 20% — doseerschema
+        </div>
+        {LAST_PROTOCOL.intralipid.map((r, i) => (
+          <div key={i} style={{
+            padding: "8px 0",
+            borderBottom: i < LAST_PROTOCOL.intralipid.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+              <span style={{ color: "#ccc", fontSize: "13px", fontWeight: 600 }}>{r.stap}</span>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#E74C3C", fontWeight: 700, fontSize: "13px", textAlign: "right" }}>{r.dosis}</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>{r.opmerking}</div>
+          </div>
+        ))}
+      </Collapse>
+
+      <div style={{
+        display: "flex", alignItems: "center", gap: "8px",
+        padding: "10px 12px", margin: "4px 0 12px",
+        background: "rgba(245,197,24,0.08)", border: "1px solid rgba(245,197,24,0.25)",
+        borderRadius: "10px", cursor: "pointer",
+      }} onClick={() => setShowDetailBron(v => !v)}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: "16px", height: "16px", borderRadius: "50%", border: "1px solid #F5C518",
+          color: "#F5C518", fontSize: "10px", fontStyle: "italic", fontWeight: 700, flexShrink: 0,
+        }}>i</span>
+        <span style={{ fontSize: "12px", color: "#F5C518" }}>
+          Bron: „Veelgebruikte geneesmiddelen anesthesie op het AMC" (T.M.S. van Winden, 2016) — tik voor details
+        </span>
+      </div>
+      {showDetailBron && (
+        <div style={{
+          fontSize: "12px", color: "#aaa", lineHeight: 1.6, padding: "10px 12px",
+          background: "rgba(255,255,255,0.04)", borderRadius: "10px", marginBottom: "12px",
+        }}>
+          Alle doses hieronder (Inductie t/m Overige) komen letterlijk uit één document: „Overzicht veelgebruikte
+          geneesmiddelen anesthesie op het AMC", T.M.S. van Winden, 2016. <span style={{ color: "#F39C12", fontWeight: 700 }}>Dit document is inmiddels 10 jaar oud</span> — er is niet gecontroleerd
+          of dit nog het actuele AUMC-beleid weerspiegelt. Vraag na bij de afdeling of hier een recentere versie van bestaat.
+        </div>
+      )}
       {MEDICATIE_DETAIL.map((cat, ci) => (
         <Collapse key={ci} title={cat.categorie} color={cat.kleur}>
           {cat.meds.map((m, i) => {
@@ -4107,6 +4176,59 @@ function ZakkaartApp() {
       categorieGroepen[m.categorie].push(m);
     });
 
+    // Eén rekenfunctie voor dosis/concentratie/pompstand — gebruikt door zowel
+    // de per-middel lijst als de Overzichtskaart, om afwijkende logica te voorkomen.
+    const computeMedDosis = (m, calcWeight, age, hasAge) => {
+      let dosis = (calcWeight * m.factor);
+      // Clamp atropine
+      if (m.med.includes("Atropine")) {
+        dosis = Math.max(0.1, Math.min(0.5, dosis));
+      }
+      // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
+      if (m.med === "Paracetamol" && calcWeight <= 10) {
+        dosis = calcWeight * 7.5;
+      }
+      // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
+      if (m.is421) {
+        dosis = calcWeight <= 10 ? calcWeight * 4
+          : calcWeight <= 20 ? 10 * 4 + (calcWeight - 10) * 2
+          : 10 * 4 + 10 * 2 + (calcWeight - 20) * 1;
+      }
+      const dosisStr = dosis < 1 ? dosis.toFixed(2) : dosis < 10 ? dosis.toFixed(1) : dosis.toFixed(0);
+      const medKleur = getMedKleur(m.med);
+      // AUMC protocol: <3 jaar Propofol 1% (10 mg/ml), ≥3 jaar Propofol 2% (20 mg/ml)
+      const isPropofol = m.med.includes("Propofol");
+      // AUMC: <3 jaar altijd 1% (10 mg/ml). Vanaf 3 jaar: inductie 1%, onderhoud 2% (20 mg/ml).
+      const propConc = isPropofol && hasAge
+        ? (age < 3 ? 10 : (m.perUur ? 20 : 10))
+        : null;
+      const propPct = propConc === 10 ? "1%" : propConc === 20 ? "2%" : null;
+      const propLabel = !hasAge ? null : age < 3 ? "<3 jr → 1%" : (m.perUur ? "≥3 jr, onderhoud → 2%" : "≥3 jr, inductie → 1%");
+      const propMl = propConc ? dosis / propConc : null;
+      const propMlStr = propMl != null ? (propMl < 1 ? propMl.toFixed(2) : propMl < 10 ? propMl.toFixed(1) : propMl.toFixed(0)) : null;
+      // Generieke pompstand (ml/uur) voor infuusmiddelen met een vaste spuitconcentratie (m.pompConc, in dezelfde eenheid als m.unit)
+      const pompMlUur = m.pompConc
+        ? (m.unit.endsWith("/min") ? (dosis * 60) / m.pompConc : m.unit.endsWith("/uur") ? dosis / m.pompConc : null)
+        : null;
+      const pompMlUurStr = pompMlUur != null ? (pompMlUur < 1 ? pompMlUur.toFixed(2) : pompMlUur < 10 ? pompMlUur.toFixed(1) : pompMlUur.toFixed(0)) : null;
+      return { dosis, dosisStr, medKleur, isPropofol, propConc, propPct, propLabel, propMl, propMlStr, pompMlUur, pompMlUurStr };
+    };
+
+    // Curatie voor de Overzichtskaart: kernmedicatie/waarden per fase van de ingreep
+    const OVERZICHT_MEDS = calcWeight ? [
+      { fase: "Inductie", namen: ["Propofol (inductie)", "Sufentanyl (inductie)", "Rocuronium (inductie)"] },
+      { fase: "Onderhoud", namen: ["Propofol (onderhoud)", "Onderhoudsvocht (4-2-1 regel, na 1e uur)"] },
+      { fase: "Nood", namen: ["Adrenaline (nood)", "Atropine (nood)"] },
+    ].map(groep => ({
+      fase: groep.fase,
+      items: groep.namen.map(naam => {
+        const m = KINDER_CALC_MEDS.find(x => x.med === naam);
+        if (!m) return null;
+        const r = computeMedDosis(m, calcWeight, age, hasAge);
+        return { naam: m.med.replace(/\s*\(.*\)/, ""), unit: m.unit, ...r };
+      }).filter(Boolean),
+    })) : [];
+
     return (
       <div>
         {/* Sticky calculator header met trommelrollers */}
@@ -4180,7 +4302,92 @@ function ZakkaartApp() {
               {!gewichtManual && <span style={{ fontSize: "10px", color: "#444", marginLeft: "4px" }}>std</span>}
             </span>
           </div>
+
+          {/* Overzichtskaart toggle */}
+          {calcWeight && (
+            <button
+              onClick={() => setShowOverzichtskaart(v => !v)}
+              style={{
+                width: "100%", marginTop: "8px", padding: "9px 12px",
+                background: showOverzichtskaart ? `${settings.accentKleur}20` : "rgba(255,255,255,0.04)",
+                border: `1px solid ${showOverzichtskaart ? settings.accentKleur : "rgba(255,255,255,0.1)"}`,
+                borderRadius: "8px", color: showOverzichtskaart ? settings.accentKleur : "#aaa",
+                fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                cursor: "pointer",
+              }}
+            >
+              📋 {t("Overzichtskaart", "Summary card")} {showOverzichtskaart ? "▲" : "▼"}
+            </button>
+          )}
         </div>
+
+        {/* Overzichtskaart: compacte samenvatting van kernwaarden per fase */}
+        {showOverzichtskaart && calcWeight && (
+          <Card>
+            <SectionTitle color={settings.accentKleur}>
+              📋 {t("Overzicht", "Summary")} — {AGE_ITEMS[calcLeeftijdIdx]?.label} · {WEIGHT_ITEMS[calcGewichtIdx]?.label}
+            </SectionTitle>
+
+            {/* Luchtweg */}
+            {(hasAge || isPrematuur) && (
+              <div style={{ marginBottom: "14px" }}>
+                <div style={{ fontSize: "10px", fontWeight: 700, color: "#F39C12", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>
+                  {t("Luchtweg", "Airway")}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {[
+                    { label: "ETT", waarde: tubeMaat, eenheid: "" },
+                    { label: "Diepte", waarde: tubeDiepte, eenheid: "cm" },
+                    { label: "Sonde", waarde: tubeSonde, eenheid: "Fr" },
+                  ].filter(x => x.waarde != null).map((x, i) => (
+                    <div key={i} style={{
+                      background: "rgba(243,156,18,0.08)", borderRadius: "8px", padding: "6px 10px",
+                      border: "1px solid rgba(243,156,18,0.15)",
+                    }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, color: "#F39C12", fontSize: "13px" }}>{x.waarde}{x.eenheid}</span>
+                      <span style={{ fontSize: "10px", color: "#888", marginLeft: "5px" }}>{x.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Medicatie per fase */}
+            {OVERZICHT_MEDS.map((groep, gi) => (
+              <div key={gi} style={{ marginBottom: gi < OVERZICHT_MEDS.length - 1 ? "14px" : 0 }}>
+                <div style={{
+                  fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px",
+                  color: groep.fase === "Nood" ? "#E74C3C" : settings.accentKleur,
+                }}>
+                  {t(groep.fase, groep.fase)}
+                </div>
+                {groep.items.map((it, ii) => (
+                  <div key={ii} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "6px 0", borderBottom: ii < groep.items.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                  }}>
+                    <span style={{ fontSize: "13px", color: "#ddd", fontWeight: 600 }}>
+                      {it.naam}
+                      {it.propPct && <span style={{ fontSize: "10px", color: "#F5C518", marginLeft: "5px" }}>({it.propPct})</span>}
+                    </span>
+                    <span style={{ textAlign: "right" }}>
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: "14px", color: groep.fase === "Nood" ? "#E74C3C" : settings.accentKleur }}>
+                        {it.dosisStr}
+                      </span>
+                      <span style={{ fontSize: "10px", color: "#888", marginLeft: "3px" }}>{it.unit}</span>
+                      {it.propMlStr && (
+                        <span style={{ fontSize: "11px", color: "#F5C518", fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, marginLeft: "6px" }}>
+                          · {it.propMlStr} ml{it.propLabel && it.propLabel.includes("onderhoud") ? "/uur" : ""}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </Card>
+        )}
 
         {/* ETT / Tube info */}
         {(hasAge || isPrematuur) && (
@@ -4386,38 +4593,7 @@ function ZakkaartApp() {
             <Card key={cat}>
               <SectionTitle color={cat === "Noodmedicatie" ? "#E74C3C" : "#2ECC71"}>{cat}</SectionTitle>
               {meds.map((m, i) => {
-                let dosis = (calcWeight * m.factor);
-                // Clamp atropine
-                if (m.med.includes("Atropine")) {
-                  dosis = Math.max(0.1, Math.min(0.5, dosis));
-                }
-                // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
-                if (m.med === "Paracetamol" && calcWeight <= 10) {
-                  dosis = calcWeight * 7.5;
-                }
-                // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
-                if (m.is421) {
-                  dosis = calcWeight <= 10 ? calcWeight * 4
-                    : calcWeight <= 20 ? 10 * 4 + (calcWeight - 10) * 2
-                    : 10 * 4 + 10 * 2 + (calcWeight - 20) * 1;
-                }
-                const dosisStr = dosis < 1 ? dosis.toFixed(2) : dosis < 10 ? dosis.toFixed(1) : dosis.toFixed(0);
-                const medKleur = getMedKleur(m.med);
-                // AUMC protocol: <3 jaar Propofol 1% (10 mg/ml), ≥3 jaar Propofol 2% (20 mg/ml)
-                const isPropofol = m.med.includes("Propofol");
-                // AUMC: <3 jaar altijd 1% (10 mg/ml). Vanaf 3 jaar: inductie 1%, onderhoud 2% (20 mg/ml).
-                const propConc = isPropofol && hasAge
-                  ? (age < 3 ? 10 : (m.perUur ? 20 : 10))
-                  : null;
-                const propPct = propConc === 10 ? "1%" : propConc === 20 ? "2%" : null;
-                const propLabel = !hasAge ? null : age < 3 ? "<3 jr → 1%" : (m.perUur ? "≥3 jr, onderhoud → 2%" : "≥3 jr, inductie → 1%");
-                const propMl = propConc ? dosis / propConc : null;
-                const propMlStr = propMl != null ? (propMl < 1 ? propMl.toFixed(2) : propMl < 10 ? propMl.toFixed(1) : propMl.toFixed(0)) : null;
-                // Generieke pompstand (ml/uur) voor infuusmiddelen met een vaste spuitconcentratie (m.pompConc, in dezelfde eenheid als m.unit)
-                const pompMlUur = m.pompConc
-                  ? (m.unit.endsWith("/min") ? (dosis * 60) / m.pompConc : m.unit.endsWith("/uur") ? dosis / m.pompConc : null)
-                  : null;
-                const pompMlUurStr = pompMlUur != null ? (pompMlUur < 1 ? pompMlUur.toFixed(2) : pompMlUur < 10 ? pompMlUur.toFixed(1) : pompMlUur.toFixed(0)) : null;
+                const { dosisStr, medKleur, propPct, propLabel, propMlStr, pompMlUurStr } = computeMedDosis(m, calcWeight, age, hasAge);
                 return (
                   <div key={i} style={{
                     display: "flex",
