@@ -1467,26 +1467,6 @@ const KINDER_VOCHT = [
   { item: "Glucose 10%", waarde: "zie Calculator — alleen <1jr/risicofactoren/>2u ingreep" },
 ];
 
-// Bron: APS Handboek 2026, Amsterdam UMC — PCA morfine/piritramide instellingen
-const PCA_INSTELLINGEN = [
-  { groep: "Volwassene", bolus: "1 ml = 1 mg", achtergrond: "geen", lockout: "5 min", max4u: "30 mg" },
-  { groep: "Kind >50 kg", bolus: "1 ml = 1 mg", achtergrond: "geen", lockout: "5 min", max4u: "20 mg" },
-  { groep: "Kind 19–49 kg", bolus: "20 µg/kg", achtergrond: "6 µg/kg/uur", lockout: "5 min", max4u: "400 µg/kg" },
-];
-
-// Bron: Protocol perioperatief vochtbeleid kinderen (JAW Polderman, Amsterdam UMC, v4.1, 2025)
-const HYPOGLYKEMIE_RISICO = [
-  "Lage glycogeenreserves (ex-prematuur <60 weken postconceptioneel, dysmature neonaat 1e 48u, leverziekte)",
-  "Langdurig nuchter geweest",
-  "Cachexie (<3e centile)",
-  "Metabole stoornissen",
-  "Ernstige infecties of sepsis",
-  "Lange operatie (>180 min)",
-  "Postoperatief geen enterale intake mogelijk",
-  "Extensief regionaal blok (bv. epiduraal)",
-  "Langdurige TPV (hogere glucosebehoefte)",
-];
-
 // Checklist kinderanesthesie — AUMC, locatie AMC
 const KINDER_CHECKLIST = [
   {
@@ -3490,34 +3470,6 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Hypoglykemie-risicogroepen (wanneer glucose 10% geven)" color="#F39C12">
-        <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>
-          Bij ingrepen &lt;2 uur zonder onderstaande risicofactoren is glucose 10% niet standaard nodig.
-        </div>
-        {HYPOGLYKEMIE_RISICO.map((r, i) => (
-          <div key={i} style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "8px",
-            padding: "6px 0",
-            borderBottom: i < HYPOGLYKEMIE_RISICO.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-          }}>
-            <span style={{ color: "#F39C12", flexShrink: 0 }}>•</span>
-            <span style={{ color: "#ccc", fontSize: "13px" }}>{r}</span>
-          </div>
-        ))}
-      </Collapse>
-      <Collapse title="PCA-instellingen (morfine/piritramide)" color="#F39C12">
-        <div style={{ overflowX: "auto" }}>
-          <TableRow cells={["Groep", "Bolus", "Achtergrond", "Lock-out", "4u max"]} header />
-          {PCA_INSTELLINGEN.map((p, i) => (
-            <TableRow key={i} cells={[p.groep, p.bolus, p.achtergrond, p.lockout, p.max4u]} />
-          ))}
-        </div>
-        <div style={{ fontSize: "11px", color: "#888", marginTop: "8px" }}>
-          Let op: er moet altijd een achtergrondinfuus (min. 5 ml/h) + terugslagklep aangesloten zijn naast een PCA-pomp. Bron: APS Handboek 2026, Amsterdam UMC.
-        </div>
-      </Collapse>
       <Collapse title="Naloxon bij ademdepressie" color="#E74C3C">
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
           <div>Staak medicijntoediening, meet sedatiescore + SpO2.</div>
@@ -4228,6 +4180,9 @@ function ZakkaartApp() {
     const tubeBlad = isPrematuur ? "Miller 0" : larynxBlad;
     const tubeSonde = isPrematuur ? neoBand.sonde : maagSonde;
     const tubeKath = isPrematuur ? neoBand.katheter : blaasKatheter;
+    // Beademingskapje & LMA-maat — gedeeld tussen de losse Collapse en de Overzichtskaart
+    const masker = hasAge ? (MASKER_MATEN.find(m => age >= m.leeftijdMin && age < m.leeftijdMax) || MASKER_MATEN[MASKER_MATEN.length - 1]) : null;
+    const lma = hasAge ? (LMA_MATEN.find(g => age >= g.leeftijdMin && age < g.leeftijdMax) || LMA_MATEN[LMA_MATEN.length - 1]) : null;
 
     const categorieGroepen = {};
     KINDER_CALC_MEDS.forEach(m => {
@@ -4391,8 +4346,9 @@ function ZakkaartApp() {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {[
                     { label: "ETT", waarde: tubeMaat, eenheid: "" },
-                    { label: "Diepte", waarde: tubeDiepte, eenheid: "cm" },
-                    { label: "Sonde", waarde: tubeSonde, eenheid: "Fr" },
+                    { label: "Blad", waarde: tubeBlad, eenheid: "" },
+                    { label: "Kapje", waarde: masker?.maat, eenheid: "" },
+                    { label: "LMA", waarde: lma?.maat, eenheid: "" },
                   ].filter(x => x.waarde != null).map((x, i) => (
                     <div key={i} style={{
                       background: "rgba(243,156,18,0.08)", borderRadius: "8px", padding: "6px 10px",
@@ -4482,13 +4438,10 @@ function ZakkaartApp() {
         {hasAge && (
           <Collapse title="Beademingskapje & LMA" color="#9B59B6">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              {(() => {
-                const masker = MASKER_MATEN.find(m => age >= m.leeftijdMin && age < m.leeftijdMax) || MASKER_MATEN[MASKER_MATEN.length - 1];
-                const lma = LMA_MATEN.find(g => age >= g.leeftijdMin && age < g.leeftijdMax) || LMA_MATEN[LMA_MATEN.length - 1];
-                return [
-                  { label: "Beademingskapje", maat: masker.maat, sub: masker.label, kleur: masker.kleur, extra: null },
-                  { label: "LMA", maat: lma.maat, sub: lma.label, kleur: lma.kleur, extra: `Manchet max ${lma.maxVol}` },
-                ].map((item, i) => (
+              {[
+                { label: "Beademingskapje", maat: masker.maat, sub: masker.label, kleur: masker.kleur, extra: null },
+                { label: "LMA", maat: lma.maat, sub: lma.label, kleur: lma.kleur, extra: `Manchet max ${lma.maxVol}` },
+              ].map((item, i) => (
                   <div key={i} style={{
                     background: `${item.kleur}12`,
                     borderRadius: "10px",
@@ -4512,8 +4465,7 @@ function ZakkaartApp() {
                     <div style={{ fontSize: "11px", color: "#666", marginTop: "4px" }}>{item.sub}</div>
                     {item.extra && <div style={{ fontSize: "10px", color: item.kleur, marginTop: "4px", fontWeight: 600 }}>{item.extra}</div>}
                   </div>
-                ));
-              })()}
+              ))}
             </div>
             {/* Reference tabel masker */}
             <div style={{ marginTop: "14px" }}>
