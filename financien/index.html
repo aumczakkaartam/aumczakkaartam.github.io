@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financiën</title>
+  <link rel="stylesheet" href="financien.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Financiën</h1>
+    <div class="sub">Alles gebeurt lokaal in je browser. Er wordt niets geüpload naar een server — je CSV's verlaten dit apparaat niet.</div>
+
+    <div class="panel">
+      <div id="dropzone" class="dropzone">
+        <div>Sleep hier je Rabobank- of Revolut-CSV-export heen, of klik om te kiezen.</div>
+        <input id="file-input" type="file" accept=".csv" multiple />
+      </div>
+      <div id="import-status" class="sub"></div>
+      <div class="privacy-note">
+        🔒 <span>Verwerking gebeurt volledig client-side. Transacties worden <strong>niet</strong> bewaard tenzij je dat hieronder aanzet.</span>
+      </div>
+      <label class="row" style="margin-top:10px;font-size:13px;">
+        <input type="checkbox" id="persist-toggle" />
+        Bewaar geïmporteerde transacties lokaal in deze browser (blijft alleen op dit apparaat)
+      </label>
+    </div>
+
+    <h2>Overzicht</h2>
+    <div id="dashboard"></div>
+
+    <div class="row" style="align-items:flex-start;margin-top:16px;">
+      <div class="panel" style="flex:1;min-width:280px;">
+        <div class="row"><strong>Per categorie</strong></div>
+        <div id="cat-table-wrap"></div>
+      </div>
+      <div class="panel" style="flex:1;min-width:280px;">
+        <div class="row"><strong>Per maand</strong></div>
+        <div id="month-chart"></div>
+      </div>
+    </div>
+
+    <h2>Eigen rekeningen / interne overboekingen</h2>
+    <div class="panel">
+      <div class="sub">Vink aan welke tegenpartijen jouw eigen rekeningen zijn (spaarpotjes, andere bank, Revolut). Die transacties tellen dan niet mee als inkomsten/uitgaven.<br>
+      Let op: vink <strong>geen</strong> gedeelde verwerkingsrekeningen aan zoals een Tikkie- of iDEAL-tussenrekening — daar lopen ook echte betalingen aan anderen doorheen, dan verdwijnen die onterecht uit je overzicht.</div>
+      <div id="own-accounts"></div>
+    </div>
+
+    <h2>Categorie-regels</h2>
+    <div class="panel">
+      <div class="sub">Trefwoord in tegenpartij/omschrijving → categorie. Eerste match wint. Wijzigingen worden bewaard in deze browser.</div>
+      <div id="rules-list" class="rules-list"></div>
+      <div class="row" style="margin-top:10px;">
+        <button class="secondary" id="add-rule">+ Regel toevoegen</button>
+        <button class="secondary" id="export-rules">Regels exporteren</button>
+      </div>
+    </div>
+
+    <h2>Transacties</h2>
+    <div class="panel">
+      <div class="row" style="margin-bottom:10px;">
+        <input id="search-box" placeholder="Zoeken…" style="min-width:200px;" />
+        <select id="filter-cat"></select>
+        <span class="spacer"></span>
+        <button class="secondary" id="export-csv">Exporteer CSV</button>
+        <button class="secondary" id="clear-all">Wis sessie</button>
+      </div>
+      <div id="tx-table-wrap" style="overflow-x:auto;"></div>
+    </div>
+
+    <footer class="note">
+      Ondersteunde formaten: Rabobank-CSV-export (met kolom "IBAN/BBAN") en Revolut-CSV-export (met kolom "Startdatum").
+      Geen koppeling met banken — je moet zelf periodiek een nieuwe export uploaden.
+    </footer>
+  </div>
+  <script src="financien.js"></script>
+</body>
+</html>
