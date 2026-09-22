@@ -1882,6 +1882,8 @@ const KINDER_CALC_MEDS = [
     bron: { status: "✅", tekst: "Kinderformularium.nl (8–16 mg/kg)" } },
   { med: "Cefazoline", factor: 30, unit: "mg", range: "30 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
     bron: { status: "🟠", tekst: "SWAB-richtlijn geeft tegenstrijdige cijfers in verschillende bronvermeldingen (10 mg/kg max 1g vs. 30 mg/kg max 2g) — kon niet worden geadjudiceerd. Juiste bron is de 'Blauwdruk pediatrische antimicrobiële therapie' (niet toegankelijk vanuit deze omgeving) — navragen bij ziekenhuisapotheek/microbioloog" } },
+  { med: "Cefuroxim", factor: 30, unit: "mg", range: "30 mg/kg (max 2 g) — vanaf 1 maand; ≥40 kg vaste dosis 1,5 g", categorie: "Antibiotica",
+    bron: { status: "✅", tekst: "SWAB-richtlijn peri-operatieve profylaxe: 30 mg/kg (max 2 g) vanaf 1 maand — onafhankelijk bevestigd door zowel het Nederlandse als het Duitse Kinderformularium, geen tegenstrijdigheid gevonden (in tegenstelling tot Cefazoline hierboven)" } },
   { med: "Metronidazol", factor: 15, unit: "mg", range: "15 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
     bron: { status: "🟡", tekst: "Perioperatieve profylaxedosis bij kinderen niet gevonden los van de niet-toegankelijke 'Blauwdruk pediatrische antimicrobiële therapie' — gevonden KF-cijfer (50 mg/kg/dag) betrof een andere indicatie" } },
   { med: "Amoxicilline", factor: 50, unit: "mg", range: "50 mg/kg (verifieer lokaal protocol)", categorie: "Antibiotica",
@@ -4201,6 +4203,10 @@ function ZakkaartApp() {
       // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
       if (m.med === "Paracetamol" && calcWeight <= 10) {
         dosis = calcWeight * 7.5;
+      }
+      // Cefuroxim: SWAB-richtlijn — vanaf 40 kg vaste volwassendosis (1,5 g), geen verdere opschaling
+      if (m.med === "Cefuroxim" && calcWeight >= 40) {
+        dosis = 1500;
       }
       // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
       if (m.is421) {
