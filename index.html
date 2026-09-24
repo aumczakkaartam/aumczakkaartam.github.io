@@ -1779,79 +1779,95 @@ const VIER_H_VIER_T = [
   },
 ];
 
-const ISOLATIE_VORMEN = [
+// Bron: AUMC Infectiepreventiebeleid — "OK: Schematisch overzicht isolatiemaatregelen" (Zenya/iProva)
+const ISOLATIE_BRON = "AUMC Infectiepreventiebeleid — „OK: Schematisch overzicht isolatiemaatregelen” (Zenya/iProva)";
+const ISOLATIE_TABEL = [
   {
-    type: "Contact",
+    type: "Contact — eenpersoonskamer",
     kleur: "#3498DB",
-    medewerker: "Handschoenen & short",
-    kamer: "Eenpersoonskamer",
-    materiaal: "Standaard",
-    schoonmaak: "Standaard",
-    voorbeelden: "BRMO, ESBL (IC, kind, hematologie)",
+    varianten: [
+      { naam: null, steriel: "Normaal steriel", nietSteriel: "Schort & handschoenen", eindeProgramma: "Nee" },
+    ],
+    holding: "Ja, op 1-persoonskamer. Indien niet beschikbaar: op zaal met min. 1,5 m afstand tussen bedden.",
+    disposable: "Standaard",
+    reusable: "Standaard",
+    leegruimen: "Nee",
+    schoonmaak: "Eindschoonmaak",
+    voorbeelden: "MRSA/BRMO hoog risico (mits PCR-afname) of BRMO (ESBL, niet CPE/VRE)",
   },
   {
-    type: "Contact + einddesinfectie",
-    kleur: "#2980B9",
-    medewerker: "Short & handschoenen",
-    kamer: "Alleen op kamer of MIC/ICV",
-    materiaal: "Standaard",
-    schoonmaak: "Eindschoonmaak + extra desinfectie",
-    voorbeelden: "Clostridium, Norovirus, VRE, CPE",
+    type: "Druppel",
+    kleur: "#7F8C8D",
+    varianten: [
+      { naam: "Druppel", steriel: "Normaal steriel", nietSteriel: "Geen", eindeProgramma: "Nee" },
+      { naam: "Druppel i.c.m. aerosolvormende handeling*", steriel: "Normaal steriel + FFP2-masker & bril tot 30 min. na aerosolvorming", nietSteriel: "FFP2-masker & bril tot 30 min. na aerosolvormende handeling", eindeProgramma: "Ja" },
+    ],
+    holding: "Ja, op 1-persoonskamer. Indien niet beschikbaar: op zaal met minimaal 1,5 m afstand tussen bedden met gesloten bedgordijnen.",
+    disposable: "Standaard",
+    reusable: "Standaard",
+    leegruimen: "Nee",
+    schoonmaak: "Eindschoonmaak",
+    voorbeelden: "Influenza, SARS-CoV-2",
   },
   {
-    type: "Contact druppel",
-    kleur: "#E67E22",
-    medewerker: "Short, handschoenen & chirurgisch mondneusmasker",
-    kamer: "Min. 1,5m afstand tussen bedden",
-    materiaal: "Standaard",
-    schoonmaak: "Standaard",
-    voorbeelden: "Griep / influenza, PRP",
+    type: "Contact — einddesinfectie",
+    kleur: "#27AE60",
+    varianten: [
+      { naam: null, steriel: "Normaal steriel", nietSteriel: "Schort & handschoenen", eindeProgramma: "Ja" },
+    ],
+    holding: "Ja, verplicht op 1-persoonskamer. Indien niet beschikbaar: op OK.",
+    disposable: "Onafgedekt materiaal weggooien",
+    reusable: "Standaard",
+    leegruimen: "Ja",
+    schoonmaak: "Eindschoonmaak & Einddesinfectie",
+    voorbeelden: "BRMO-VRE/CPE, Norovirus, Clostridium",
   },
   {
-    type: "Contact druppel PLUS (SARS-CoV-2)",
+    type: "Aerogeen",
+    kleur: "#F1C40F",
+    varianten: [
+      { naam: null, steriel: "Normaal steriel + FFP2-masker** & bril tot 30 min. na vertrek patiënt", nietSteriel: "FFP2-masker** & bril tot 30 min. na vertrek patiënt", eindeProgramma: "Ja" },
+    ],
+    holding: "Nee; op de operatiekamer.",
+    disposable: "Standaard",
+    reusable: "Standaard",
+    leegruimen: "Nee",
+    schoonmaak: "30 minuten laten luchten. Eindschoonmaak.",
+    voorbeelden: "TBC, waterpokken, mazelen en gordelroos",
+  },
+  {
+    type: "Strikt",
     kleur: "#E74C3C",
-    medewerker: "Bril, handschoenen, chirurgisch mondneusmasker & schort",
-    kamer: "PACU in overleg / verkoeverkamer",
-    materiaal: "Niet afgedekt weggooien, rest gesteriliseerd of gedesinfecteerd",
-    schoonmaak: "Eindschoonmaak + extra desinfectie + ½ uur luchten",
-    voorbeelden: "SARS-CoV-2",
+    varianten: [
+      { naam: null, steriel: "Normaal steriel", nietSteriel: "Schort & handschoenen", eindeProgramma: "Ja" },
+    ],
+    holding: "Nee; op de operatiekamer. PACU AMC: verkoeveren in box 3.",
+    disposable: "Onafgedekt materiaal weggooien",
+    reusable: "Standaard",
+    leegruimen: "Ja",
+    schoonmaak: "Eindschoonmaak & Einddesinfectie",
+    voorbeelden: "MRSA-drager, MR-Acinetobacter",
   },
   {
-    type: "Aërogeen (bij aërogene handelingen SARS-CoV-2)",
-    kleur: "#C0392B",
-    medewerker: "Schort, handschoenen, FFP2-masker & bril",
-    kamer: "PACU in overleg / MIC/ICV",
-    materiaal: "Niet afgedekt weggooien, rest gesteriliseerd of gedesinfecteerd",
-    schoonmaak: "Eindschoonmaak + extra desinfectie + ½ uur luchten",
-    voorbeelden: "SARS-CoV-2 bij aërogene handelingen",
+    type: "Strikt bril",
+    kleur: "#C2185B",
+    varianten: [
+      { naam: null, steriel: "Normaal steriel. FFP2-masker & bril tot 30 min. na vertrek patiënt.", nietSteriel: "FFP2-masker & bril tot 30 min. na vertrek patiënt. Schort & handschoenen.", eindeProgramma: "Ja" },
+    ],
+    holding: "Binnenkomst via verkeersluwe ingang. Direct naar operatiekamer.",
+    disposable: "Onafgedekt materiaal weggooien",
+    reusable: "Standaard",
+    leegruimen: "Ja",
+    schoonmaak: "30 minuten laten luchten. Eindschoonmaak & Einddesinfectie.",
+    voorbeelden: "MERS",
   },
-  {
-    type: "Aërogeen (FFP2)",
-    kleur: "#9B59B6",
-    medewerker: "FFP2-masker",
-    kamer: "Nee, op MIC/ICV",
-    materiaal: "Standaard",
-    schoonmaak: "Standaard + ½ uur luchten",
-    voorbeelden: "TBC",
-  },
-  {
-    type: "Strikt (MRSA / MR Acinetobacter)",
-    kleur: "#8E44AD",
-    medewerker: "Schort & handschoenen",
-    kamer: "Nee, op OK alleen of MIC/ICV",
-    materiaal: "Niet afgedekt weggooien, rest gesteriliseerd of gedesinfecteerd",
-    schoonmaak: "Eindschoonmaak + extra desinfectie",
-    voorbeelden: "MRSA, MR Acinetobacter",
-  },
-  {
-    type: "Strikt (waterpokken / mazelen)",
-    kleur: "#E74C3C",
-    medewerker: "Schort, handschoenen & FFP2-masker",
-    kamer: "Nee, op MIC/ICV",
-    materiaal: "Niet afgedekt weggooien, rest gesteriliseerd of gedesinfecteerd",
-    schoonmaak: "Eindschoonmaak + extra desinfectie + ½ uur luchten",
-    voorbeelden: "Waterpokken, mazelen",
-  },
+];
+const ISOLATIE_VOETNOTEN = [
+  "Neem bij twijfel altijd contact op met de afdeling Infectiepreventie. Afval afvoeren volgens beleid 'Afvalbeheer LDC'.",
+  "* Na aerosolvormende handelingen: operatiekamer niet betreden binnen 30 minuten, ofwel met FFP2-masker en beschermende bril. Aerosolvormend zijn: scopie bovenste tractus digestivus, bronchoscopie/-alveolaire lavage, intubatie/detubatie, reanimatie, laryngoscopie, uitzuigen (diep tracheaal). NB: vernevelen (met en zonder voorzetkamer), non-invasieve beademing en High Flow Nasal Oxygen vallen NIET onder aerosolvormende handelingen.",
+  "** Bij waterpokken/mazelen/gordelroos: alleen FFP2 indien de medewerker de ziekte niet heeft doorgemaakt (waterpokken) of niet gevaccineerd is (mazelen). Anders chirurgisch mondneusmasker IIR i.p.v. FFP2.",
+  "Bij isolatievorm Druppel: niet detuberen op de verkoever.",
+  "Voor MRSA laag risico of MRSA/BRMO laag risico gelden geen isolatiemaatregelen.",
 ];
 
 // Medicatie voor kinderdoseringscalculator (dosering per kg)
@@ -4086,7 +4102,7 @@ function ZakkaartApp() {
 
   const renderIsolatie = () => (
     <div>
-      {ISOLATIE_VORMEN.map((iv, i) => (
+      {ISOLATIE_TABEL.map((iv, i) => (
         <div key={i} style={{
           marginBottom: "12px",
           borderRadius: "14px",
@@ -4107,45 +4123,78 @@ function ZakkaartApp() {
             }}>{iv.voorbeelden}</div>
           </div>
           <div style={{ padding: "12px 14px" }}>
-            {[
-              { label: "Medewerker", val: iv.medewerker },
-              { label: "Kamer / PACU", val: iv.kamer },
-              { label: "Materiaal", val: iv.materiaal },
-              { label: "Schoonmaak", val: iv.schoonmaak },
-            ].map((row, j) => (
-              <div key={j} style={{
-                display: "flex",
-                gap: "10px",
-                padding: "6px 0",
-                borderBottom: j < 3 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                fontSize: "13px",
-              }}>
-                <span style={{
-                  color: "#888",
-                  minWidth: "90px",
-                  flexShrink: 0,
-                  fontSize: "11px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  paddingTop: "2px",
-                }}>{row.label}</span>
-                <span style={{ color: "#ccc" }}>{row.val}</span>
+            {/* Extra maatregelen OK-medewerkers (1 of 2 varianten, bv. Druppel vs. Druppel+aerosol) */}
+            {iv.varianten.map((v, vi) => (
+              <div key={vi} style={{ marginBottom: vi < iv.varianten.length - 1 ? "10px" : "0", paddingBottom: vi < iv.varianten.length - 1 ? "10px" : "0", borderBottom: vi < iv.varianten.length - 1 ? `1px dashed ${iv.kleur}30` : "none" }}>
+                {v.naam && (
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: iv.kleur, marginBottom: "4px" }}>{v.naam}</div>
+                )}
+                {[
+                  { label: "Steriel", val: v.steriel },
+                  { label: "Niet steriel", val: v.nietSteriel },
+                  { label: "Einde programma", val: v.eindeProgramma },
+                ].map((row, j) => (
+                  <div key={j} style={{
+                    display: "flex",
+                    gap: "10px",
+                    padding: "4px 0",
+                    fontSize: "13px",
+                  }}>
+                    <span style={{
+                      color: "#888",
+                      minWidth: "120px",
+                      flexShrink: 0,
+                      fontSize: "11px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                      paddingTop: "2px",
+                    }}>{row.label}</span>
+                    <span style={{ color: "#ccc" }}>{row.val}</span>
+                  </div>
+                ))}
               </div>
             ))}
+            <div style={{ borderTop: `1px solid ${iv.kleur}20`, marginTop: "10px", paddingTop: "8px" }}>
+              {[
+                { label: "Holding/verkoever/PACU", val: iv.holding },
+                { label: "Disposable", val: iv.disposable },
+                { label: "Re-usable", val: iv.reusable },
+                { label: "Leegruimen", val: iv.leegruimen },
+                { label: "OK-kamer schoonmaak", val: iv.schoonmaak },
+              ].map((row, j) => (
+                <div key={j} style={{
+                  display: "flex",
+                  gap: "10px",
+                  padding: "4px 0",
+                  fontSize: "13px",
+                }}>
+                  <span style={{
+                    color: "#888",
+                    minWidth: "120px",
+                    flexShrink: 0,
+                    fontSize: "11px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    paddingTop: "2px",
+                  }}>{row.label}</span>
+                  <span style={{ color: "#ccc" }}>{row.val}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ))}
       <Card>
-        <div style={{
-          background: "rgba(231,76,60,0.08)",
-          borderRadius: "8px",
-          padding: "10px",
-          fontSize: "12px",
-          color: "#E67E22",
-          lineHeight: 1.5,
-          border: "1px solid rgba(231,76,60,0.15)",
-        }}>
-          ⚠️ Bij twijfel: neem altijd contact op met de werkeenheid infectiepreventie.
+        {ISOLATIE_VOETNOTEN.map((v, i) => (
+          <div key={i} style={{
+            fontSize: "11px", color: i === 0 ? "#E67E22" : "#888",
+            lineHeight: 1.5, marginBottom: i < ISOLATIE_VOETNOTEN.length - 1 ? "8px" : 0,
+          }}>
+            {i === 0 && "⚠️ "}{v}
+          </div>
+        ))}
+        <div style={{ fontSize: "10px", color: "#666", marginTop: "10px", textAlign: "right" }}>
+          Bron: {ISOLATIE_BRON}
         </div>
       </Card>
     </div>
