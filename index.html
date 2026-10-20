@@ -6725,7 +6725,20 @@ function ZakkaartApp() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {activeSection && activeSectionData && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ color: activeSectionData.color }}>{activeSectionData.icon}</span>
+                <div style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "9px",
+                  background: `${activeSectionData.color}20`,
+                  border: `1px solid ${activeSectionData.color}40`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: activeSectionData.color,
+                  flexShrink: 0,
+                }}>
+                  {React.cloneElement(activeSectionData.icon, { width: 16, height: 16 })}
+                </div>
                 <span style={{ fontWeight: 700, fontSize: "16px" }}>{activeSectionData.label}</span>
               </div>
             )}
