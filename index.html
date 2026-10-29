@@ -6470,6 +6470,14 @@ function ZakkaartApp() {
       }
     };
     SECTIONS.forEach(s => {
+      if (s.id === "tel") {
+        // Telefoonnummers worden per locatie gerenderd (AMC/VU) op basis van de
+        // huidige `locatie`-keuze; hier indexeren we beide locaties expliciet,
+        // zodat nummers van de niet-geselecteerde locatie ook vindbaar zijn.
+        try { walk(renderTelefoon(TELEFOON_AMC, "AUMC, locatie AMC"), null, s.id, s.label); } catch (e) {}
+        try { walk(renderTelefoon(TELEFOON_VUMC, "AUMC, locatie VU"), null, s.id, s.label); } catch (e) {}
+        return;
+      }
       const r = SECTION_RENDERERS[s.id];
       if (!r) return;
       let tree = null;
