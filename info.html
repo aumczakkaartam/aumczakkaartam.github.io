@@ -2017,6 +2017,52 @@ function ZakkaartApp() {
     </div>
   );
 
+  const PersonCard = ({ p }) => (
+    <Card>
+      <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", color: "#888", marginBottom: "4px" }}>{p.rol}</div>
+      <div style={{ fontWeight: 700, fontSize: "16px", color: "#fff", marginBottom: "8px" }}>{p.naam}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {p.tel !== "—" && <div style={{ fontSize: "13px", color: "#3498DB" }}>📱 {p.tel}</div>}
+        {p.intern !== "—" && <div style={{ fontSize: "13px", color: "#aaa" }}>☎️ Intern: {p.intern}</div>}
+        <div style={{ fontSize: "12px", color: "#888" }}>✉️ {p.email}</div>
+      </div>
+    </Card>
+  );
+
+  const ImageCard = ({ src, alt, beschrijving }) => (
+    <Card>
+      <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
+        {beschrijving} — tik om te vergroten
+      </div>
+      <div style={{
+        borderRadius: "10px",
+        overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.1)",
+        cursor: "pointer",
+      }}
+        onClick={(e) => {
+          const img = e.currentTarget.querySelector('img');
+          if (img.style.maxHeight === 'none') {
+            img.style.maxHeight = '350px';
+            img.style.objectFit = 'cover';
+          } else {
+            img.style.maxHeight = 'none';
+            img.style.objectFit = 'contain';
+          }
+        }}
+      >
+        <img src={src} alt={alt} style={{
+          width: "100%",
+          maxHeight: "350px",
+          objectFit: "cover",
+          objectPosition: "center",
+          display: "block",
+          transition: "max-height 0.3s ease",
+        }} />
+      </div>
+    </Card>
+  );
+
   // ---- Section content renderers ----
 
   const SEIN_MELDINGEN = [
@@ -3240,17 +3286,6 @@ function ZakkaartApp() {
   );
 
   const renderTeam = () => {
-    const PersonCard = ({ p }) => (
-      <Card>
-        <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", color: "#888", marginBottom: "4px" }}>{p.rol}</div>
-        <div style={{ fontWeight: 700, fontSize: "16px", color: "#fff", marginBottom: "8px" }}>{p.naam}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {p.tel !== "—" && <div style={{ fontSize: "13px", color: "#3498DB" }}>📱 {p.tel}</div>}
-          {p.intern !== "—" && <div style={{ fontSize: "13px", color: "#aaa" }}>☎️ Intern: {p.intern}</div>}
-          <div style={{ fontSize: "12px", color: "#888" }}>✉️ {p.email}</div>
-        </div>
-      </Card>
-    );
 
     if (selectedPerson) {
       return (
@@ -3757,39 +3792,6 @@ function ZakkaartApp() {
       { id: "vumc", label: "AUMC, locatie VU" },
     ];
 
-    const ImageCard = ({ src, alt, beschrijving }) => (
-      <Card>
-        <div style={{ fontSize: "12px", color: "#666", marginBottom: "8px" }}>
-          {beschrijving} — tik om te vergroten
-        </div>
-        <div style={{
-          borderRadius: "10px",
-          overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.1)",
-          cursor: "pointer",
-        }}
-          onClick={(e) => {
-            const img = e.currentTarget.querySelector('img');
-            if (img.style.maxHeight === 'none') {
-              img.style.maxHeight = '350px';
-              img.style.objectFit = 'cover';
-            } else {
-              img.style.maxHeight = 'none';
-              img.style.objectFit = 'contain';
-            }
-          }}
-        >
-          <img src={src} alt={alt} style={{
-            width: "100%",
-            maxHeight: "350px",
-            objectFit: "cover",
-            objectPosition: "center",
-            display: "block",
-            transition: "max-height 0.3s ease",
-          }} />
-        </div>
-      </Card>
-    );
 
     const zoekTerm = plattegrondZoek.toLowerCase().trim();
     const gefilterdeAMCBouwdelen = zoekTerm
@@ -5278,45 +5280,66 @@ function ZakkaartApp() {
   // toevoeging aan welk tabblad dan ook wordt zo automatisch vindbaar.
   const buildSearchIndex = () => {
     const idx = [];
-    const walk = (node, collapse, sectionId, sectionLabel) => {
+    const walk = (node, collapse, sectionId, sectionLabel, loc) => {
       if (node == null || node === false || node === true) return;
       if (typeof node === "string" || typeof node === "number") {
         const s = String(node).trim();
-        if (s) idx.push({ section: sectionId, sectionLabel, collapse, text: s });
+        if (s) idx.push({ section: sectionId, sectionLabel, collapse, text: s, loc });
         return;
       }
-      if (Array.isArray(node)) { node.forEach(n => walk(n, collapse, sectionId, sectionLabel)); return; }
+      if (Array.isArray(node)) { node.forEach(n => walk(n, collapse, sectionId, sectionLabel, loc)); return; }
       if (typeof node === "object" && node.props) {
         const p = node.props;
         let ct = collapse;
         if (node.type === Collapse && typeof p.title === "string") {
           ct = p.title;
-          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.title });
+          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.title, loc });
         }
+        // Leaf-componenten geven hun tekst via props door (niet via children),
+        // dus die moeten hier expliciet herkend en geïndexeerd worden — anders
+        // blijft alles wat erin staat onvindbaar via de zoekbalk.
         if (node.type === PhoneRow) {
-          if (typeof p.naam === "string" && p.naam.trim()) idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.naam });
-          if (typeof p.nummer === "string" && p.nummer.trim()) idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.nummer });
+          const naam = typeof p.naam === "string" ? p.naam.trim() : "";
+          const nummer = typeof p.nummer === "string" ? p.nummer.trim() : "";
+          if (naam || nummer) {
+            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, nummer].filter(Boolean).join(" — "), loc });
+          }
+        }
+        if (node.type === PersonCard && p.p && typeof p.p === "object") {
+          const person = p.p;
+          const naam = typeof person.naam === "string" ? person.naam.trim() : "";
+          const rol = typeof person.rol === "string" ? person.rol.trim() : "";
+          if (naam) {
+            const kw = [person.tel, person.intern, person.email]
+              .filter(v => typeof v === "string" && v.trim() && v !== "—")
+              .join(" ");
+            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, rol].filter(Boolean).join(" — "), kw, loc });
+          }
+        }
+        if (node.type === ImageCard && typeof p.beschrijving === "string" && p.beschrijving.trim()) {
+          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.beschrijving, loc });
         }
         if (node.type === TableRow && Array.isArray(p.cells)) {
           p.cells.forEach(c => {
             if ((typeof c === "string" || typeof c === "number") && String(c).trim()) {
-              idx.push({ section: sectionId, sectionLabel, collapse: ct, text: String(c) });
+              idx.push({ section: sectionId, sectionLabel, collapse: ct, text: String(c), loc });
             }
           });
         }
         ["label", "placeholder", "alt"].forEach(k => {
-          if (typeof p[k] === "string" && p[k].trim()) idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p[k] });
+          if (typeof p[k] === "string" && p[k].trim()) idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p[k], loc });
         });
-        walk(p.children, ct, sectionId, sectionLabel);
+        walk(p.children, ct, sectionId, sectionLabel, loc);
       }
     };
     SECTIONS.forEach(s => {
       if (s.id === "tel") {
         // Telefoonnummers worden per locatie gerenderd (AMC/VU) op basis van de
-        // huidige `locatie`-keuze; hier indexeren we beide locaties expliciet,
-        // zodat nummers van de niet-geselecteerde locatie ook vindbaar zijn.
-        try { walk(renderTelefoon(TELEFOON_AMC, "AUMC, locatie AMC"), null, s.id, s.label); } catch (e) {}
-        try { walk(renderTelefoon(TELEFOON_VUMC, "AUMC, locatie VU"), null, s.id, s.label); } catch (e) {}
+        // huidige `locatie`-keuze; hier indexeren we beide locaties expliciet
+        // (met een loc-tag), zodat nummers van de niet-geselecteerde locatie
+        // ook vindbaar zijn én een klik op het resultaat de juiste locatie opent.
+        try { walk(renderTelefoon(TELEFOON_AMC, "AUMC, locatie AMC"), null, s.id, s.label, "amc"); } catch (e) {}
+        try { walk(renderTelefoon(TELEFOON_VUMC, "AUMC, locatie VU"), null, s.id, s.label, "vumc"); } catch (e) {}
         return;
       }
       const r = SECTION_RENDERERS[s.id];
@@ -5426,6 +5449,7 @@ function ZakkaartApp() {
         text: item.text,
         cat: item.sectionLabel + (item.collapse ? " · " + item.collapse : ""),
         personData: person || undefined,
+        loc: item.loc || undefined,
       });
       if (out.length >= 60) break;
     }
