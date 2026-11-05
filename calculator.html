@@ -765,6 +765,9 @@ function CalculatorApp() {
   const [showDetailBron, setShowDetailBron] = useState(false);
   const [showOverzichtskaart, setShowOverzichtskaart] = useState(false);
   const [laGewicht, setLaGewicht] = useState(70);
+  const [collapseTarget, setCollapseTarget] = useState(null);
+  const [tabSearchQuery, setTabSearchQuery] = useState("");
+  useEffect(() => { setTabSearchQuery(""); }, [activeTab]);
 
   // ---- Render helpers ----
 
@@ -1587,6 +1590,30 @@ function CalculatorApp() {
     { id: "medicatie", label: t("Medicatie", "Medication"), icon: Icons.pill, color: "#E67E22" },
   ];
 
+  const deaccent = s => (s || "").toString().normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  const tabSearchIndex = useMemo(() => {
+    const w = WEIGHT_ITEMS[calcGewichtIdx]?.value ?? null;
+    const isPrematuurSearch = w != null && w < 3;
+    return [
+      { tab: "medicatie", title: "Standaardmedicatie volwassenen", text: "Standaardmedicatie volwassenen " + MEDICATIE_STANDAARD.map(m => m.med).join(" ") },
+      { tab: "medicatie", title: "LAST — toxiciteit lokaal anestheticum (Intralipid)", text: "LAST toxiciteit lokaal anestheticum Intralipid convulsies ritmestoornissen collaps tongtintelingen" },
+      ...MEDICATIE_DETAIL.map(cat => ({ tab: "medicatie", title: cat.categorie, text: cat.categorie + " " + cat.meds.map(m => m.naam).join(" ") })),
+      { tab: "medicatie", title: "Lokaal anesthetica — max dosering", text: "Lokaal anesthetica max dosering LAST Intralipid bupivacaine lidocaine ropivacaine" },
+      { tab: "calculator", title: isPrematuurSearch ? "Tube, sonde, blad & katheter (prematuur)" : "Tube, sonde, blad & katheter (op leeftijd)", text: "tube sonde blad katheter maat leeftijd ETT maagsonde blaaskatheter larynxblad" },
+      { tab: "calculator", title: "Beademingskapje & LMA", text: "beademingskapje LMA masker larynxmasker maat" },
+      { tab: "calculator", title: "Vochtbeleid", text: "vochtbeleid infuus onderhoud bolus vocht" },
+    ];
+  }, [calcGewichtIdx]);
+
+  const tabSearchResults = useMemo(() => {
+    if (!tabSearchQuery || tabSearchQuery.length < 2) return null;
+    const ql = deaccent(tabSearchQuery);
+    return tabSearchIndex
+      .filter(it => it.tab === activeTab && deaccent(it.title + " " + it.text).includes(ql))
+      .map(it => ({ title: it.title }));
+  }, [tabSearchQuery, activeTab, tabSearchIndex]);
+
   return (
     <div style={{ maxWidth: "480px", margin: "0 auto", padding: "16px 16px 40px", color: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
       <div style={{ marginBottom: "16px" }}>
@@ -1619,7 +1646,72 @@ function CalculatorApp() {
         ))}
       </div>
 
-      {activeTab === "calculator" ? renderCalculator() : renderMedicatie()}
+      {/* Zoeken binnen tabblad */}
+      <div style={{ position: "relative", marginBottom: tabSearchResults ? "8px" : "16px" }}>
+        <div style={{
+          position: "absolute",
+          left: "12px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: "#586069",
+        }}>{React.cloneElement(Icons.search, { width: 15, height: 15 })}</div>
+        <input
+          type="text"
+          placeholder={`Zoek in ${TABS.find(tb => tb.id === activeTab)?.label || "dit tabblad"}...`}
+          value={tabSearchQuery}
+          onChange={e => setTabSearchQuery(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "9px 12px 9px 36px",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "10px",
+            color: "#fff",
+            fontSize: "13px",
+            outline: "none",
+            fontFamily: "inherit",
+            boxSizing: "border-box",
+          }}
+        />
+      </div>
+      {tabSearchResults && (
+        <div style={{ marginBottom: "16px" }}>
+          {tabSearchResults.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#586069", padding: "10px", fontSize: "13px" }}>
+              Geen resultaten in dit tabblad
+            </div>
+          ) : (
+            tabSearchResults.map((r, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setCollapseTarget({ title: r.title, nonce: Date.now() });
+                  setTabSearchQuery("");
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "10px 12px",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  borderRadius: "9px",
+                  marginBottom: "6px",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  color: "#fff",
+                }}
+              >
+                <div style={{ fontSize: "13px" }}>{r.title}</div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      <CollapseTargetCtx.Provider value={collapseTarget}>
+        {activeTab === "calculator" ? renderCalculator() : renderMedicatie()}
+      </CollapseTargetCtx.Provider>
 
       <div style={{ textAlign: "center", marginTop: "24px" }}>
         <a href="./info.html" style={{ fontSize: "12px", color: "#555", textDecoration: "none" }}>
