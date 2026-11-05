@@ -1165,26 +1165,26 @@ const KINDER_VITAAL = [
 ];
 
 const BLOEDGAS = [
-  { param: "pH", waarde: "7,35 – 7,45" },
-  { param: "pCO₂", waarde: "4,7 – 6,4 kPa / 35–45 mmHg" },
-  { param: "pO₂", waarde: "10,0 – 13,3 kPa / 75–100 mmHg" },
-  { param: "HCO₃⁻ act", waarde: "22 – 26 mmol/l" },
-  { param: "BE (Base Excess)", waarde: "−3 – +3 mmol/l" },
-  { param: "O₂-sat", waarde: "95–98% (streef 100%)" },
+  { param: "pH", waarde: "7,35 – 7,45", uitleg: "Zuurgraad van het bloed. Lager dan 7,35 = acidose, hoger dan 7,45 = alkalose." },
+  { param: "pCO₂", waarde: "4,7 – 6,4 kPa / 35–45 mmHg", uitleg: "Partiële CO₂-druk — weerspiegelt de ventilatie. Hoog bij hypoventilatie, laag bij hyperventilatie." },
+  { param: "pO₂", waarde: "10,0 – 13,3 kPa / 75–100 mmHg", uitleg: "Partiële zuurstofdruk in het bloed — maat voor oxygenatie." },
+  { param: "HCO₃⁻ act", waarde: "22 – 26 mmol/l", uitleg: "Bicarbonaat — de metabole (nier-)component van de zuur-base balans." },
+  { param: "BE (Base Excess)", waarde: "−3 – +3 mmol/l", uitleg: "Overmaat of tekort aan buffers t.o.v. normaal — toont de metabole afwijking los van de ademhaling." },
+  { param: "O₂-sat", waarde: "95–98% (streef 100%)", uitleg: "Percentage hemoglobine dat daadwerkelijk met zuurstof verzadigd is." },
   // CO-oximetrie
-  { param: "tHb (Hb)", waarde: "♂ 8,5–11,0 · ♀ 7,5–10,0 mmol/l" },
-  { param: "FO₂Hb", waarde: "94 – 98 %" },
-  { param: "FCOHb", waarde: "< 1,5 % (rokers tot ~5%)" },
-  { param: "FMetHb", waarde: "< 1,5 %" },
-  { param: "FHHb", waarde: "< 5 % (deoxy-Hb fractie)" },
+  { param: "tHb (Hb)", waarde: "♂ 8,5–11,0 · ♀ 7,5–10,0 mmol/l", uitleg: "Totaal hemoglobinegehalte — bepaalt de zuurstoftransportcapaciteit van het bloed." },
+  { param: "FO₂Hb", waarde: "94 – 98 %", uitleg: "Fractie oxyhemoglobine — het deel van de hemoglobine dat zuurstof heeft gebonden." },
+  { param: "FCOHb", waarde: "< 1,5 % (rokers tot ~5%)", uitleg: "Fractie carboxyhemoglobine — hemoglobine gebonden aan koolmonoxide (CO-intoxicatie)." },
+  { param: "FMetHb", waarde: "< 1,5 %", uitleg: "Fractie methemoglobine — hemoglobine dat geen zuurstof meer kan binden (methemoglobinemie)." },
+  { param: "FHHb", waarde: "< 5 % (deoxy-Hb fractie)", uitleg: "Fractie gedeoxygeneerd hemoglobine — hemoglobine zonder gebonden zuurstof." },
   // Electrolyten
-  { param: "Na⁺", waarde: "135 – 145 mmol/l" },
-  { param: "K⁺", waarde: "3,5 – 5,0 mmol/l" },
-  { param: "Ca²⁺ (geïoniseerd)", waarde: "1,15 – 1,30 mmol/l" },
-  { param: "Cl⁻", waarde: "98 – 107 mmol/l" },
+  { param: "Na⁺", waarde: "135 – 145 mmol/l", uitleg: "Natrium — belangrijkste elektrolyt buiten de cel, bepaalt mede de vochtbalans." },
+  { param: "K⁺", waarde: "3,5 – 5,0 mmol/l", uitleg: "Kalium — cruciaal voor hartritme en spierfunctie; afwijkingen geven snel aritmieën." },
+  { param: "Ca²⁺ (geïoniseerd)", waarde: "1,15 – 1,30 mmol/l", uitleg: "Vrij, actief calcium — belangrijk voor hartcontractie, stolling en spierfunctie." },
+  { param: "Cl⁻", waarde: "98 – 107 mmol/l", uitleg: "Chloride — volgt meestal natrium en speelt een rol in de zuur-base balans." },
   // Metabolieten
-  { param: "Glucose", waarde: "4,0 – 7,8 mmol/l" },
-  { param: "Lactaat", waarde: "0,5 – 1,6 mmol/l (< 2,0)" },
+  { param: "Glucose", waarde: "4,0 – 7,8 mmol/l", uitleg: "Bloedsuiker — ontregeling kan duiden op stressrespons, sepsis of diabetes." },
+  { param: "Lactaat", waarde: "0,5 – 1,6 mmol/l (< 2,0)", uitleg: "Maat voor weefselperfusie — verhoogd bij shock, sepsis of weefselischemie." },
 ];
 
 const BEADEMING = [
@@ -3387,6 +3387,7 @@ function ZakkaartApp() {
   const [activeSection, setActiveSection] = useState(null);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tabSearchQuery, setTabSearchQuery] = useState("");
   const [locatie, setLocatie] = useState("amc");
   const [gewicht, setGewicht] = useState("");
   const [leeftijdCalc, setLeeftijdCalc] = useState("");
@@ -3415,6 +3416,7 @@ function ZakkaartApp() {
   const t = (nl, en) => settings.taal === "en" ? en : nl;
   const [leidingOpen, setLeidingOpen] = useState(false);
   const [openBronMed, setOpenBronMed] = useState(null);
+  const [openBloedgasParam, setOpenBloedgasParam] = useState(null);
   const [showDetailBron, setShowDetailBron] = useState(false);
   const [showOverzichtskaart, setShowOverzichtskaart] = useState(false);
   const [selectedBuis, setSelectedBuis] = useState(null);
@@ -4365,14 +4367,48 @@ function ZakkaartApp() {
     <div>
       <Collapse title="Normaalwaarden bloedgasanalyse" color="#3498DB" icon={Icons.droplet}>
         {BLOEDGAS.map((b, i) => (
-          <div key={i} style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "10px 0",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            <span style={{ fontWeight: 600, color: "#fff", fontSize: "14px" }}>{b.param}</span>
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3498DB", fontSize: "13px" }}>{b.waarde}</span>
+          <div key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <button
+              onClick={() => setOpenBloedgasParam(openBloedgasParam === b.param ? null : b.param)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "10px",
+                padding: "10px 0",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textAlign: "left",
+              }}
+            >
+              <span style={{ fontWeight: 600, color: "#fff", fontSize: "14px", textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: "#586069", textUnderlineOffset: "3px" }}>{b.param}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#3498DB", fontSize: "13px" }}>{b.waarde}</span>
+                <span style={{
+                  flexShrink: 0,
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  border: "1px solid #444",
+                  color: "#777",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: openBloedgasParam === b.param ? "rotate(45deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                  ...(openBloedgasParam === b.param ? { borderColor: "#3498DB", color: "#3498DB" } : {}),
+                }}>+</span>
+              </span>
+            </button>
+            {openBloedgasParam === b.param && (
+              <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: 1.5, padding: "0 2px 10px 0" }}>
+                {b.uitleg}
+              </div>
+            )}
           </div>
         ))}
       </Collapse>
@@ -7733,6 +7769,79 @@ function ZakkaartApp() {
     return out;
   }, [searchQuery]);
 
+  useEffect(() => { setTabSearchQuery(""); }, [activeSection]);
+
+  const tabSearchResults = useMemo(() => {
+    if (!activeSection || !tabSearchQuery || tabSearchQuery.length < 2) return null;
+    if (!searchIndexRef.current) {
+      try { searchIndexRef.current = buildSearchIndex(); }
+      catch (e) { searchIndexRef.current = []; }
+    }
+    if (!searchFuseRef.current && window.Fuse) {
+      searchFuseRef.current = new Fuse(searchIndexRef.current, {
+        keys: [
+          { name: "text", weight: 0.5 },
+          { name: "collapse", weight: 0.25 },
+          { name: "kw", weight: 0.15 },
+          { name: "sectionLabel", weight: 0.1 },
+        ],
+        includeScore: true,
+        ignoreLocation: true,
+        threshold: 0.38,
+        minMatchCharLength: 2,
+      });
+    }
+    const ql = deaccent(tabSearchQuery);
+    const terms = [tabSearchQuery];
+    const padded = " " + ql + " ";
+    for (const key in ZOEK_SYNONIEMEN) {
+      if (padded.includes(" " + key + " ")) terms.push(...ZOEK_SYNONIEMEN[key]);
+    }
+    const seen = new Map();
+    if (searchFuseRef.current) {
+      for (const term of terms) {
+        for (const r of searchFuseRef.current.search(term)) {
+          const it = r.item;
+          if (it.section !== activeSection) continue;
+          const key = (it.collapse || "") + "|" + it.text;
+          const prev = seen.get(key);
+          if (!prev || r.score < prev.score) seen.set(key, { item: it, score: r.score });
+        }
+      }
+    } else {
+      const tokens = ql.split(/\s+/).filter(Boolean);
+      for (const item of searchIndexRef.current) {
+        if (item.section !== activeSection) continue;
+        const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
+        if (!tokens.every(t => hay.includes(t))) continue;
+        const key = (item.collapse || "") + "|" + item.text;
+        if (!seen.has(key)) seen.set(key, { item, score: 0 });
+      }
+    }
+    const arr = [...seen.values()];
+    arr.forEach(r => {
+      const words = deaccent((r.item.text || "") + " " + (r.item.collapse || "")).split(/[\s\-/]+/).filter(Boolean);
+      if (words.some(w => w.startsWith(ql))) r.score *= 0.3;
+      if (deaccent(r.item.text || "") === ql || deaccent(r.item.collapse || "") === ql) r.score *= 0.1;
+    });
+    arr.sort((a, b) => a.score - b.score);
+    const out = [];
+    for (const { item } of arr) {
+      const person = (item.section === "team")
+        ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam))
+        : null;
+      out.push({
+        collapse: item.collapse || null,
+        text: item.text,
+        cat: item.collapse || "",
+        personData: person || undefined,
+        loc: item.loc || undefined,
+      });
+      if (out.length >= 30) break;
+    }
+    return out;
+  }, [tabSearchQuery, activeSection]);
+
   const activeSectionData = SECTIONS.find(s => s.id === activeSection);
 
   return (
@@ -7903,6 +8012,80 @@ function ZakkaartApp() {
             )}
           </div>
         </div>
+
+        {/* Zoeken binnen tabblad */}
+        {activeSection && (
+          <div style={{ position: "relative" }}>
+            <div style={{
+              position: "absolute",
+              left: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: "#586069",
+            }}>{React.cloneElement(Icons.search, { width: 15, height: 15 })}</div>
+            <input
+              type="text"
+              placeholder={`Zoek in ${activeSectionData ? activeSectionData.label : "dit tabblad"}...`}
+              value={tabSearchQuery}
+              onChange={e => setTabSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "9px 12px 9px 36px",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "10px",
+                color: "#fff",
+                fontSize: "13px",
+                outline: "none",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+        )}
+        {tabSearchResults && (
+          <div style={{ marginTop: "10px" }}>
+            {tabSearchResults.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#586069", padding: "10px", fontSize: "13px" }}>
+                Geen resultaten in dit tabblad
+              </div>
+            ) : (
+              tabSearchResults.map((r, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (r.personData) {
+                      skipPersonResetRef.current = true;
+                      setSelectedPerson(r.personData);
+                    } else if (r.loc) {
+                      setLocatie(r.loc);
+                    }
+                    setCollapseTarget(r.collapse ? { title: r.collapse, nonce: Date.now() } : null);
+                    setTabSearchQuery("");
+                  }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "10px 12px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                    borderRadius: "9px",
+                    marginBottom: "6px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    color: "#fff",
+                  }}
+                >
+                  {r.cat && (
+                    <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px", color: "#586069", marginBottom: "4px" }}>{r.cat}</div>
+                  )}
+                  <div style={{ fontSize: "13px" }}>{r.text}</div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Search */}
         {!activeSection && (
