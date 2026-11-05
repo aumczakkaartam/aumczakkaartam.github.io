@@ -156,13 +156,20 @@ function Collapse({ title, color = "#fff", children, defaultOpen = false, icon =
           gap: "8px",
         }}
       >
-        <span style={{
-          fontSize: "13px",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "1.5px",
-          color: color,
-        }}>{title}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+          {icon && (
+            <span style={{ display: "flex", flexShrink: 0, color: color }}>
+              {React.cloneElement(icon, { width: 15, height: 15 })}
+            </span>
+          )}
+          <span style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "1.5px",
+            color: color,
+          }}>{title}</span>
+        </span>
         <span style={{
           fontSize: "18px",
           color: "#555",
@@ -1871,15 +1878,13 @@ const ISOLATIE_VOETNOTEN = [
 ];
 
 // ============================================================
-// INTERNE TELEFOONLIJST — overgenomen van gefotografeerde AUMC-lijsten
+// INTERNE TELEFOONLIJST
 // ============================================================
-const PERSONEEL_BRON = "Interne telefoonlijsten AUMC (OK-coördinatie / Anesthesiologie), diverse versiedata 2019–2025 — overgetypt van foto's op 27 okt 2026";
 
 const PERSONEEL_GROEPEN = [
   {
     titel: "Dienstseinen (alle specialismen)",
     kleur: "#C0392B",
-    waarschuwing: "Door een lichte hoek op de foto was de koppeling tussen naam en nummer bij een paar regels in deze lijst lastig te garanderen. Dubbelcheck bij twijfel.",
     items: [
       { naam: "Anesthesie, jongste", nummer: "s 59337 / s 59397" },
       { naam: "Apotheek", nummer: "s 59844 / s 63824" },
@@ -3271,6 +3276,11 @@ const Icons = {
       <path d="M9.59 4.59A2 2 0 1111 8H2m10.59 11.41A2 2 0 1014 16H2m15.73-8.27A2.5 2.5 0 1119.5 12H2"/>
     </svg>
   ),
+  droplet: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2.69s5 5.5 5 9.5a5 5 0 01-10 0c0-4 5-9.5 5-9.5z"/>
+    </svg>
+  ),
   map: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
@@ -3600,7 +3610,7 @@ function ZakkaartApp() {
           </div>
         </div>
       </div>
-      <Collapse title="Noodmedicatie" color="#E74C3C">
+      <Collapse title="Noodmedicatie" color="#E74C3C" icon={Icons.pill}>
         {NOODMEDICATIE.map((m, i) => (
           <div key={i} style={{
             padding: "8px 0 8px 8px",
@@ -3615,7 +3625,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Reversibele oorzaken (4H's + 4T's)" color="#E74C3C">
+      <Collapse title="Reversibele oorzaken (4H's + 4T's)" color="#E74C3C" icon={Icons.alert}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
           {ALS_REVERSIBEL_KORT.map((item, i) => (
             <div key={i} style={{
@@ -3629,7 +3639,7 @@ function ZakkaartApp() {
           ))}
         </div>
       </Collapse>
-      <Collapse title="Meldingen op het sein" color="#E74C3C">
+      <Collapse title="Meldingen op het sein" color="#E74C3C" icon={Icons.phone}>
         {SEIN_MELDINGEN.map((s, i) => (
           <div key={i} style={{
             padding: "10px 0 10px 10px",
@@ -3769,39 +3779,39 @@ function ZakkaartApp() {
         )}
       </div>
 
-      <Collapse title="Vaste nummers" color="#3498DB" defaultOpen={true}>
+      <Collapse title="Vaste nummers" color="#3498DB" defaultOpen={true} icon={Icons.phone}>
         {data.vast.map((p, i) => <PhoneRow key={i} {...p} />)}
       </Collapse>
       {data.dagcentrumOK && (
-        <Collapse title="Dagcentrum OK's" color="#3498DB">
+        <Collapse title="Dagcentrum OK's" color="#3498DB" icon={Icons.map}>
           {data.dagcentrumOK.map((p, i) => <PhoneRow key={i} {...p} />)}
         </Collapse>
       )}
       {data.ic && (
-        <Collapse title="Intensive Care" color="#E74C3C">
+        <Collapse title="Intensive Care" color="#E74C3C" icon={Icons.alert}>
           {data.ic.map((p, i) => <PhoneRow key={i} {...p} />)}
         </Collapse>
       )}
       {data.bloed && (
-        <Collapse title="Bloed halen" color="#C0392B">
+        <Collapse title="Bloed halen" color="#C0392B" icon={Icons.droplet}>
           {data.bloed.map((p, i) => <PhoneRow key={i} {...p} />)}
         </Collapse>
       )}
       {data.buizenpost && (
-        <Collapse title="Buizenpost locaties" color="#9B59B6">
+        <Collapse title="Buizenpost locaties" color="#9B59B6" icon={Icons.tube}>
           {data.buizenpost.map((p, i) => <PhoneRow key={i} {...p} />)}
         </Collapse>
       )}
-      <Collapse title="Seinnummers" color="#2ECC71">
+      <Collapse title="Seinnummers" color="#2ECC71" icon={Icons.phone}>
         {data.sein.map((p, i) => <PhoneRow key={i} {...p} />)}
       </Collapse>
-      <Collapse title="Dienstseinen AM" color="#F39C12">
+      <Collapse title="Dienstseinen AM" color="#F39C12" icon={Icons.phone}>
         {data.dienstAM.map((p, i) => <PhoneRow key={i} {...p} />)}
       </Collapse>
-      <Collapse title="Dienstseinen Anesthesiologen" color="#E67E22">
+      <Collapse title="Dienstseinen Anesthesiologen" color="#E67E22" icon={Icons.phone}>
         {data.dienstAnes.map((p, i) => <PhoneRow key={i} {...p} />)}
       </Collapse>
-      <Collapse title={`Diensten ${label}`} color="#3498DB">
+      <Collapse title={`Diensten ${label}`} color="#3498DB" icon={Icons.calendar}>
         {(label.includes("locatie AMC") ? DIENSTEN_AMC : DIENSTEN_VUMC).map((d, i) => (
           <div key={i} style={{
             display: "flex",
@@ -3824,7 +3834,7 @@ function ZakkaartApp() {
   const renderOK = () => (
     <div>
       {/* Schipholbord legenda */}
-      <Collapse title="Schipholbord — Legenda" color="#E67E22">
+      <Collapse title="Schipholbord — Legenda" color="#E67E22" icon={Icons.map}>
         <div style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
           Kleurcodes patiëntflow op het OK-planningsbord
         </div>
@@ -3873,7 +3883,7 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
-      <Collapse title="OK's per specialisme — AUMC, locatie AMC" color="#16A085">
+      <Collapse title="OK's per specialisme — AUMC, locatie AMC" color="#16A085" icon={Icons.map}>
         {OK_SPECIALISMEN.map((item, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4037,7 +4047,7 @@ function ZakkaartApp() {
 
   const renderMedicatie = () => (
     <div>
-      <Collapse title="Standaardmedicatie volwassenen" color="#E67E22">
+      <Collapse title="Standaardmedicatie volwassenen" color="#E67E22" icon={Icons.pill}>
         <div style={{ overflowX: "auto" }}>
           <TableRow cells={["Medicament", "Inductie", "Onderhoud"]} header />
           {MEDICATIE_STANDAARD.map((m, i) => (
@@ -4080,7 +4090,7 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
-      <Collapse title="LAST — toxiciteit lokaal anestheticum (Intralipid)" color="#E74C3C">
+      <Collapse title="LAST — toxiciteit lokaal anestheticum (Intralipid)" color="#E74C3C" icon={Icons.alert}>
         <div style={{ fontSize: "11px", color: "#888", marginBottom: "10px" }}>
           Internationaal gestandaardiseerd noodprotocol (AAGBI/ASRA), niet AUMC-specifiek. Vooral van toepassing bij volwassenen.
         </div>
@@ -4136,7 +4146,7 @@ function ZakkaartApp() {
         </div>
       )}
       {MEDICATIE_DETAIL.map((cat, ci) => (
-        <Collapse key={ci} title={cat.categorie} color={cat.kleur}>
+        <Collapse key={ci} title={cat.categorie} color={cat.kleur} icon={Icons.pill}>
           {cat.meds.map((m, i) => {
             const itemKleur = cat.categorie === "Antagonisten"
               ? (i % 2 === 0 ? "#8B5E3C" : "#C49A6C")
@@ -4185,7 +4195,7 @@ function ZakkaartApp() {
         </Collapse>
       ))}
 
-      <Collapse title="Lokaal anesthetica — max dosering" color="#16A085">
+      <Collapse title="Lokaal anesthetica — max dosering" color="#16A085" icon={Icons.pill}>
         <div style={{
           background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.3)", borderLeft: "4px solid #E74C3C",
           borderRadius: "10px", padding: "10px 12px", marginBottom: "14px", fontSize: "12px", color: "#ccc", lineHeight: 1.5,
@@ -4255,7 +4265,7 @@ function ZakkaartApp() {
 
   const renderChecks = () => (
     <div>
-      <Collapse title="SALTMOVIES — Check voor start inleiding" color="#2ECC71">
+      <Collapse title="SALTMOVIES — Check voor start inleiding" color="#2ECC71" icon={Icons.clipboard}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "10px" }}>
           Systematische check vóór elke inductie — tik een item aan als het klaar is
         </div>
@@ -4278,7 +4288,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="LEMON-law — Luchtwegbeoordeling" color="#3498DB">
+      <Collapse title="LEMON-law — Luchtwegbeoordeling" color="#3498DB" icon={Icons.wind}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "10px" }}>
           Voorspelt moeilijke intubatie — score ≥ 2 factoren = verhoogd risico
         </div>
@@ -4301,7 +4311,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="SBAR — Overdracht" color="#9B59B6">
+      <Collapse title="SBAR — Overdracht" color="#9B59B6" icon={Icons.clipboard}>
         {Object.entries(SBAR).map(([key, items]) => (
           <div key={key} style={{ marginBottom: "12px" }}>
             <div style={{
@@ -4322,7 +4332,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Essentiële veiligheidsafspraken" color="#34495E">
+      <Collapse title="Essentiële veiligheidsafspraken" color="#34495E" icon={Icons.shield}>
         {VEILIGHEIDSAFSPRAKEN.map((v, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4353,7 +4363,7 @@ function ZakkaartApp() {
 
   const renderBloedgas = () => (
     <div>
-      <Collapse title="Normaalwaarden bloedgasanalyse" color="#3498DB">
+      <Collapse title="Normaalwaarden bloedgasanalyse" color="#3498DB" icon={Icons.droplet}>
         {BLOEDGAS.map((b, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4366,7 +4376,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Beademing" color="#16A085">
+      <Collapse title="Beademing" color="#16A085" icon={Icons.wind}>
         {BEADEMING.map((b, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4381,7 +4391,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* ROTEM — Stollingsdiagnostiek */}
-      <Collapse title="ROTEM — AUMC stollingsprotocol" color="#9B59B6">
+      <Collapse title="ROTEM — AUMC stollingsprotocol" color="#9B59B6" icon={Icons.droplet}>
         <div style={{
           background: "linear-gradient(135deg, rgba(155,89,182,0.08) 0%, rgba(155,89,182,0.02) 100%)",
           border: "1px solid rgba(155,89,182,0.2)",
@@ -4478,7 +4488,7 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
-      <Collapse title="ROTEM — Parameter uitleg" color="#9B59B6">
+      <Collapse title="ROTEM — Parameter uitleg" color="#9B59B6" icon={Icons.droplet}>
         {ROTEM_PARAMETERS.map((cat, ci) => (
           <div key={ci} style={{ marginBottom: ci < ROTEM_PARAMETERS.length - 1 ? "16px" : 0 }}>
             <div style={{
@@ -4513,7 +4523,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="ROTEM — Tests in 1 oogopslag" color="#9B59B6">
+      <Collapse title="ROTEM — Tests in 1 oogopslag" color="#9B59B6" icon={Icons.droplet}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
           {ROTEM_TESTS.map((t, i) => (
             <div key={i} style={{
@@ -4530,7 +4540,7 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
-      <Collapse title="Antistolling — antagoneren bij overdosering" color="#C0392B">
+      <Collapse title="Antistolling — antagoneren bij overdosering" color="#C0392B" icon={Icons.droplet}>
         {ANTISTOLLING_REVERSAL.map((g, i) => (
           <div key={i} style={{
             background: "rgba(192,57,43,0.06)",
@@ -4551,7 +4561,7 @@ function ZakkaartApp() {
 
   const renderKinder = () => (
     <div>
-      <Collapse title="Checklist kinderanesthesie" color="#E67E22">
+      <Collapse title="Checklist kinderanesthesie" color="#E67E22" icon={Icons.clipboard}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "10px", lineHeight: 1.5 }}>
           Standaardchecklist AUMC, locatie AMC — loop deze door vóór elke kinder-OK.
         </div>
@@ -4581,7 +4591,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Temperatuur" color="#F39C12">
+      <Collapse title="Temperatuur" color="#F39C12" icon={Icons.heart}>
         <div style={{ fontSize: "14px", color: "#ccc", lineHeight: 1.6 }}>
           Neonaat: <strong style={{ color: "#F39C12" }}>27°C</strong> — Anders: <strong style={{ color: "#F39C12" }}>24°C</strong>
         </div>
@@ -4592,7 +4602,7 @@ function ZakkaartApp() {
           {"<"}10 kg: Neoslangen · {">"}10 kg: Volwassenslangen (evt. kleine 1L ballon)
         </div>
       </Collapse>
-      <Collapse title="Formules" color="#F39C12">
+      <Collapse title="Formules" color="#F39C12" icon={Icons.calc}>
         {KINDER_FORMULES.map((f, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4605,7 +4615,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Vochtbeleid" color="#F39C12">
+      <Collapse title="Vochtbeleid" color="#F39C12" icon={Icons.droplet}>
         {KINDER_VOCHT.map((v, i) => (
           <div key={i} style={{
             display: "flex",
@@ -4619,14 +4629,14 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Naloxon bij ademdepressie" color="#E74C3C">
+      <Collapse title="Naloxon bij ademdepressie" color="#E74C3C" icon={Icons.pill}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
           <div>Staak medicijntoediening, meet sedatiescore + SpO2.</div>
           <div style={{ marginTop: "6px" }}><span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#E74C3C", fontWeight: 700 }}>0,2–0,4 mg IV</span>, titreren naar effect tot max. 1 mg.</div>
           <div style={{ marginTop: "4px", fontSize: "12px", color: "#888" }}>Op verkoever: verdunnen met 9 ml NaCl 0,9% en titreren met 1-2 ml (= 0,04-0,08 mg) per keer. Geen verbetering → overleg supervisor/zaalarts.</div>
         </div>
       </Collapse>
-      <Collapse title="Normaalwaarden vitale parameters" color="#F39C12">
+      <Collapse title="Normaalwaarden vitale parameters" color="#F39C12" icon={Icons.heart}>
         <div style={{ overflowX: "auto" }}>
           <TableRow cells={["Leeftijd", "Pols", "SBD ↓", "Adem/min"]} header />
           {KINDER_VITAAL.map((v, i) => (
@@ -4634,7 +4644,7 @@ function ZakkaartApp() {
           ))}
         </div>
       </Collapse>
-      <Collapse title="Kindermedicatie" color="#F39C12">
+      <Collapse title="Kindermedicatie" color="#F39C12" icon={Icons.pill}>
         <div style={{ overflowX: "auto" }}>
           <TableRow cells={["Medicament", "Inductie", "Onderhoud"]} header />
           {KINDERMEDICATIE.map((m, i) => (
@@ -4642,7 +4652,7 @@ function ZakkaartApp() {
           ))}
         </div>
       </Collapse>
-      <Collapse title="Noodmedicatie kinderen" color="#E74C3C">
+      <Collapse title="Noodmedicatie kinderen" color="#E74C3C" icon={Icons.pill}>
         {NOODMEDICATIE.map((m, i) => (
           <div key={i} style={{
             padding: "8px 0 8px 8px",
@@ -4657,7 +4667,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="Antiemetica — PONV-profylaxe" color="#16A085">
+      <Collapse title="Antiemetica — PONV-profylaxe" color="#16A085" icon={Icons.pill}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "10px" }}>
           PONV-profylaxe kinderen — doses per kg lichaamsgewicht
         </div>
@@ -4740,21 +4750,21 @@ function ZakkaartApp() {
           <strong style={{ color: "#fff" }}>Niet-schokbaar (PEA/Asystolie):</strong> Adrenaline 1 mg vanaf 1e blok, daarna elke 2 blokken (3e, 5e …). Kinderen 10 µg/kg (max 1 mg) elke 3–5 min.
         </div>
       </div>
-      <Collapse title="Tijdens reanimatie" color="#E74C3C">
+      <Collapse title="Tijdens reanimatie" color="#E74C3C" icon={Icons.zap}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           Kwalitatief hoogwaardige thoraxcompressies · Minimaliseer onderbrekingen · Zuurstof toedienen ·
           Ononderbroken compressies na geavanceerde luchtwegtechniek · Vasculaire toegang (IV/IO) ·
           Adrenaline elke 3–5 min · Capnografie gebruiken
         </div>
       </Collapse>
-      <Collapse title="Post-ROSC" color="#2ECC71">
+      <Collapse title="Post-ROSC" color="#2ECC71" icon={Icons.heart}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           ABCDE benadering · SaO₂ 94–98% · Normale PaCO₂ · 12-afleidingen ECG ·
           Behandel onderliggende oorzaak · Doelgericht temperatuurmanagement
         </div>
       </Collapse>
 
-      <Collapse title="4H's + 4T's — Tik voor details" color="#E74C3C">
+      <Collapse title="4H's + 4T's — Tik voor details" color="#E74C3C" icon={Icons.alert}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
           {ALS_REVERSIBEL_KORT.map((label, i) => {
             const items = labelToItems[label] || [];
@@ -4870,7 +4880,7 @@ function ZakkaartApp() {
         );
       })}
 
-      <Collapse title="Kinderen beademingsfrequentie" color="#F39C12">
+      <Collapse title="Kinderen beademingsfrequentie" color="#F39C12" icon={Icons.wind}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           Zuigeling: 25/min · 1–8 jr: 20/min · 8–12 jr: 15/min · {">"}12 jr: 10/min
         </div>
@@ -4884,7 +4894,7 @@ function ZakkaartApp() {
 
   const renderSpoed = () => (
     <div>
-      <Collapse title="Noodknop" color="#E74C3C">
+      <Collapse title="Noodknop" color="#E74C3C" icon={Icons.alert}>
         {NOODKNOP_INFO.map((n, i) => (
           <div key={i} style={{ marginBottom: "12px" }}>
             <div style={{ fontWeight: 700, color: "#E74C3C", fontSize: "13px" }}>{n.locatie}</div>
@@ -4904,7 +4914,7 @@ function ZakkaartApp() {
           ⚠️ Alleen indrukken op aanwijzing van anesthesioloog, anesthesiemedewerker of operateur.
         </div>
       </Collapse>
-      <Collapse title="Spoedbundel (fysiek + QR)" color="#3498DB">
+      <Collapse title="Spoedbundel (fysiek + QR)" color="#3498DB" icon={Icons.clipboard}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
           De spoedbundels liggen in de <span style={{ color: "#1ABC9C", fontWeight: 700 }}>onderste lade</span> (met de sticker "spoedbundel").
           Houd deze lade hiervoor gereserveerd.
@@ -4919,7 +4929,7 @@ function ZakkaartApp() {
           "Spoedbundel volw." / "Spoedbundel kind" boven aan het startscherm.
         </div>
       </Collapse>
-      <Collapse title="Moeilijke Luchtwegkar (MLK)" color="#9B59B6">
+      <Collapse title="Moeilijke Luchtwegkar (MLK)" color="#9B59B6" icon={Icons.wind}>
         {MLK_INFO.map((m, i) => (
           <div key={i} style={{ marginBottom: "10px" }}>
             <div style={{ fontWeight: 700, color: "#9B59B6", fontSize: "13px" }}>{m.locatie}</div>
@@ -4927,7 +4937,7 @@ function ZakkaartApp() {
           </div>
         ))}
       </Collapse>
-      <Collapse title="Prik-, snij-, bijt- & spataccident" color="#E67E22">
+      <Collapse title="Prik-, snij-, bijt- & spataccident" color="#E67E22" icon={Icons.alert}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
           <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "12px" }}>
             Bij accident met humaan bloed, weefsel of vocht — risico op Hepatitis B, Hepatitis C en/of HIV.
@@ -5002,7 +5012,7 @@ function ZakkaartApp() {
     return (
       <div>
         {LEIDINGGEVENDEN.map((p, i) => <PersonCard key={i} p={p} />)}
-        <Collapse title="Vertrouwenspersoon" color="#2ECC71">
+        <Collapse title="Vertrouwenspersoon" color="#2ECC71" icon={Icons.users}>
           <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
             vertrouwenspersonen@amsterdamumc.nl
           </div>
@@ -5010,7 +5020,7 @@ function ZakkaartApp() {
             App: #zouikwatzeggen (App Store / Play Store)
           </div>
         </Collapse>
-        <Collapse title="Peersupport" color="#E67E22">
+        <Collapse title="Peersupport" color="#E67E22" icon={Icons.users}>
           <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6 }}>
             care4ourown-anest@amsterdamumc.nl
           </div>
@@ -5021,7 +5031,7 @@ function ZakkaartApp() {
 
   const renderEPAs = () => (
     <div>
-      <Collapse title="Supervisieniveaus" color="#1ABC9C" defaultOpen={true}>
+      <Collapse title="Supervisieniveaus" color="#1ABC9C" defaultOpen={true} icon={Icons.book}>
         {SUPERVISIE.map((s, i) => (
           <div key={i} style={{
             display: "flex",
@@ -5048,7 +5058,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="Bewijsinstrumenten EPA's" color="#1ABC9C">
+      <Collapse title="Bewijsinstrumenten EPA's" color="#1ABC9C" icon={Icons.clipboard}>
         {[
           {
             naam: "KPE van dienst",
@@ -5104,7 +5114,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="Tijdlijn — streefmoment niveau 4" color="#1ABC9C">
+      <Collapse title="Tijdlijn — streefmoment niveau 4" color="#1ABC9C" icon={Icons.calendar}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", marginBottom: "10px", fontSize: "11px" }}>
           {["geel", "blauw", "groen", "roze", "rood"].map(cat => (
             <span key={cat} style={{ display: "flex", alignItems: "center", gap: "5px", color: "#aaa" }}>
@@ -5151,7 +5161,7 @@ function ZakkaartApp() {
         </div>
       </Collapse>
 
-      <Collapse title="Tijdschema EPA's" color="#1ABC9C">
+      <Collapse title="Tijdschema EPA's" color="#1ABC9C" icon={Icons.calendar}>
         <div style={{
           background: "rgba(26,188,156,0.08)",
           border: "1px solid rgba(26,188,156,0.25)",
@@ -5236,7 +5246,7 @@ function ZakkaartApp() {
       </Card>
 
       {ISOLATIE_TABEL.map((iv, i) => (
-        <Collapse key={i} title={iv.type} color={iv.kleur}>
+        <Collapse key={i} title={iv.type} color={iv.kleur} icon={Icons.biohazard}>
           <div style={{
             fontSize: "12px",
             color: iv.kleur,
@@ -5325,31 +5335,14 @@ function ZakkaartApp() {
     <div>
       <Card>
         <div style={{ fontSize: "12px", color: "#888", lineHeight: 1.5 }}>
-          Interne telefoonlijsten van AUMC, overgenomen van gefotografeerde
-          overzichten. Gebruik de zoekbalk bovenaan de app om snel een naam,
-          afdeling of nummer te vinden — dat doorzoekt ook deze lijst.
-        </div>
-        <div style={{ fontSize: "10px", color: "#555", marginTop: "8px" }}>
-          Bron: {PERSONEEL_BRON}
+          Interne telefoonlijsten van AUMC. Gebruik de zoekbalk bovenaan de app
+          om snel een naam, afdeling of nummer te vinden — dat doorzoekt ook
+          deze lijst.
         </div>
       </Card>
 
       {PERSONEEL_GROEPEN.map((groep, gi) => (
-        <Collapse key={gi} title={groep.titel} color={groep.kleur}>
-          {groep.waarschuwing && (
-            <div style={{
-              fontSize: "11px",
-              color: "#E67E22",
-              background: "#E67E2215",
-              border: "1px solid #E67E2230",
-              borderRadius: "8px",
-              padding: "8px 10px",
-              marginBottom: "10px",
-              lineHeight: 1.4,
-            }}>
-              ⚠️ {groep.waarschuwing}
-            </div>
-          )}
+        <Collapse key={gi} title={groep.titel} color={groep.kleur} icon={Icons.phone}>
           {groep.items.map((item, i) => (
             <PhoneRow key={i} naam={item.naam} nummer={item.nummer} />
           ))}
@@ -5613,7 +5606,7 @@ function ZakkaartApp() {
 
         {/* ETT / Tube info */}
         {(hasAge || isPrematuur) && (
-          <Collapse title={isPrematuur ? "Tube, sonde, blad & katheter (prematuur)" : "Tube, sonde, blad & katheter (op leeftijd)"} color="#F39C12">
+          <Collapse title={isPrematuur ? "Tube, sonde, blad & katheter (prematuur)" : "Tube, sonde, blad & katheter (op leeftijd)"} color="#F39C12" icon={Icons.tube}>
             {isPrematuur && (
               <div style={{ fontSize: "12px", color: "#F39C12", marginBottom: "10px", fontWeight: 700 }}>
                 Prematuur / neonaat {WEIGHT_ITEMS[calcGewichtIdx]?.label} — uncuffed, maten op gewicht
@@ -5649,7 +5642,7 @@ function ZakkaartApp() {
 
         {/* Beademingskapje & LMA maten */}
         {hasAge && (
-          <Collapse title="Beademingskapje & LMA" color="#9B59B6">
+          <Collapse title="Beademingskapje & LMA" color="#9B59B6" icon={Icons.wind}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
               {[
                 { label: "Beademingskapje", maat: masker.maat, sub: masker.label, kleur: masker.kleur, extra: null },
@@ -5754,7 +5747,7 @@ function ZakkaartApp() {
           }
           const mlPerUurStr = mlPerUur < 10 ? mlPerUur.toFixed(1) : mlPerUur.toFixed(0);
           return (
-            <Collapse title="Vochtbeleid" color="#3498DB">
+            <Collapse title="Vochtbeleid" color="#3498DB" icon={Icons.droplet}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
                 {[
                   { label: "Onderhoud 1e ½ uur", waarde: `${(w * 10).toFixed(0)} ml`, sub: "10 ml/kg" },
@@ -5908,7 +5901,7 @@ function ZakkaartApp() {
 
   const renderDermatomen = () => (
     <div>
-      <Collapse title="Anatomische kaart" color="#E67E22">
+      <Collapse title="Anatomische kaart" color="#E67E22" icon={Icons.anatomy}>
         <div style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
           Tik op de afbeelding om te vergroten
         </div>
@@ -5939,7 +5932,7 @@ function ZakkaartApp() {
           }} />
         </div>
       </Collapse>
-      <Collapse title="Dermatoom-landmarks" color="#E67E22">
+      <Collapse title="Dermatoom-landmarks" color="#E67E22" icon={Icons.anatomy}>
         <div style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
           Klinische oriëntatiepunten per dermatoomniveau
         </div>
@@ -6011,7 +6004,7 @@ function ZakkaartApp() {
 
   const renderVaatstelsel = () => (
     <div>
-      <Collapse title="Anatomische kaart" color="#E74C3C">
+      <Collapse title="Anatomische kaart" color="#E74C3C" icon={Icons.anatomy}>
         <div style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}>
           Tik op de afbeelding om te vergroten
         </div>
@@ -6179,7 +6172,7 @@ function ZakkaartApp() {
               alt="AUMC, locatie AMC plattegrond begane grond"
               beschrijving="Begane grond — poliklinieken, routes, voorzieningen"
             />
-            <Collapse title="Codering AUMC, locatie AMC" color="#16A085">
+            <Collapse title="Codering AUMC, locatie AMC" color="#16A085" icon={Icons.map}>
               <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
                 Alle ruimten worden aangeduid als <strong style={{ color: "#16A085", fontFamily: "'JetBrains Mono', monospace" }}>H8-314</strong> = bouwdeel H, 8e verdieping, kamer 314.
               </div>
@@ -6188,7 +6181,7 @@ function ZakkaartApp() {
                 Dagcentrum: bouwdeel D. OK-complex: boven bouwdeel C/D.
               </div>
             </Collapse>
-            <Collapse title="Ingangen AUMC, locatie AMC" color="#16A085">
+            <Collapse title="Ingangen AUMC, locatie AMC" color="#16A085" icon={Icons.map}>
               {[
                 { nr: "1", naam: "Hoofdingang", locatie: "Meibergdreef (bij P1)" },
                 { nr: "2", naam: "Ingang Oost", locatie: "Faculteit (bij P4)" },
@@ -6218,7 +6211,7 @@ function ZakkaartApp() {
               ))}
             </Collapse>
             {(zoekTerm ? [] : AMC_BOUWDELEN).map((bd, i) => (
-              <Collapse key={i} title={`Bouwdeel ${bd.bouwdeel}`} color={bd.kleur}>
+              <Collapse key={i} title={`Bouwdeel ${bd.bouwdeel}`} color={bd.kleur} icon={Icons.map}>
                 <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px", fontStyle: "italic" }}>{bd.omschrijving}</div>
                 {bd.afdelingen.map((afd, j) => (
                   <div key={j} style={{
@@ -6243,7 +6236,7 @@ function ZakkaartApp() {
               alt="AUMC, locatie VU campus overzicht"
               beschrijving="Campus overzicht — bouwdelen A t/m Z, ACTA, Imaging Center"
             />
-            <Collapse title="Ingangen AUMC, locatie VU" color="#16A085">
+            <Collapse title="Ingangen AUMC, locatie VU" color="#16A085" icon={Icons.map}>
               {[
                 { nr: "1", naam: "Ingang Ziekenhuis", locatie: "De Boelelaan 1117 + UHP" },
                 { nr: "2", naam: "Ingang Poliklinieken", locatie: "De Boelelaan 1118" },
@@ -6274,7 +6267,7 @@ function ZakkaartApp() {
                 </div>
               ))}
             </Collapse>
-            <Collapse title="Gebouwen AUMC, locatie VU" color="#16A085">
+            <Collapse title="Gebouwen AUMC, locatie VU" color="#16A085" icon={Icons.map}>
               <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
                 Ziekenhuisgebouw en polikliniekgebouw zijn verbonden door een brug. OK's: 6e etage (6A). Dagcentrum OK's: 2e etage.
               </div>
@@ -6288,7 +6281,7 @@ function ZakkaartApp() {
   const renderRooster = () => (
     <div>
       {/* Snelle toegang */}
-      <Collapse title="Snelle toegang OWS" color="#9B59B6" defaultOpen={true}>
+      <Collapse title="Snelle toegang OWS" color="#9B59B6" defaultOpen={true} icon={Icons.calendar}>
         <div style={{
           background: "linear-gradient(135deg, rgba(155,89,182,0.12) 0%, rgba(155,89,182,0.04) 100%)",
           border: "1px solid rgba(155,89,182,0.3)",
@@ -6314,7 +6307,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Voorkeur vs Verlof */}
-      <Collapse title="⚠ Voorkeur vs Verlof" color="#E74C3C" defaultOpen={true}>
+      <Collapse title="⚠ Voorkeur vs Verlof" color="#E74C3C" defaultOpen={true} icon={Icons.calendar}>
         <div style={{ fontSize: "12px", color: "#E74C3C", fontStyle: "italic", marginBottom: "10px" }}>
           Cruciaal onderscheid — wil je zéker vrij zijn, vraag dan altijd VERLOF aan, geen voorkeur.
         </div>
@@ -6354,7 +6347,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Vakantie-deadlines */}
-      <Collapse title="🏖 Vakantie-aanvraag deadlines" color="#E67E22" defaultOpen={true}>
+      <Collapse title="🏖 Vakantie-aanvraag deadlines" color="#E67E22" defaultOpen={true} icon={Icons.calendar}>
         <div style={{ fontSize: "11px", color: "#888", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Indienen vóór de deadline — anders niet gegarandeerd.
         </div>
@@ -6388,7 +6381,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Zelfroosteren */}
-      <Collapse title="🆕 Zelfroosteren (vanaf augustus 2026)" color="#1ABC9C">
+      <Collapse title="🆕 Zelfroosteren (vanaf augustus 2026)" color="#1ABC9C" icon={Icons.calendar}>
         <div style={{
           background: "rgba(26,188,156,0.08)",
           border: "1px solid rgba(26,188,156,0.3)",
@@ -6412,7 +6405,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Jokers */}
-      <Collapse title="🃏 Jokers — extra zwaarwegende wensen" color="#E91E63">
+      <Collapse title="🃏 Jokers — extra zwaarwegende wensen" color="#E91E63" icon={Icons.calendar}>
         <div style={{
           background: "linear-gradient(135deg, rgba(233,30,99,0.12) 0%, rgba(233,30,99,0.03) 100%)",
           border: "1px solid rgba(233,30,99,0.3)",
@@ -6441,7 +6434,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* ATW */}
-      <Collapse title="⚖ ATW — arbeidstijdenwet regels" color="#F39C12">
+      <Collapse title="⚖ ATW — arbeidstijdenwet regels" color="#F39C12" icon={Icons.book}>
         <div style={{ fontSize: "11px", color: "#888", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Vertaling naar AUMC roostercodes. Het ziekenhuis kan boetes krijgen bij schending.
         </div>
@@ -6494,7 +6487,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Onderling ruilen */}
-      <Collapse title="🔄 Onderling ruilen via OWS" color="#3498DB">
+      <Collapse title="🔄 Onderling ruilen via OWS" color="#3498DB" icon={Icons.calendar}>
         <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           <li>Ruilen kan zelf via OWS — niet meer via roosteraars (behalve 3-hoeksruil)</li>
           <li>Collega moet voldoen aan <strong style={{ color: "#fff" }}>functieprofiel, kwalificaties, ATW & cao</strong></li>
@@ -6517,7 +6510,7 @@ function ZakkaartApp() {
 
       {/* Roostercodes per groep */}
       {ROOSTER_GROEPEN.map((groep, gi) => (
-        <Collapse key={gi} title={groep.naam} color={groep.kleur}>
+        <Collapse key={gi} title={groep.naam} color={groep.kleur} icon={Icons.calendar}>
           <div style={{ overflowX: "auto" }}>
             <div style={{
               display: "grid",
@@ -6564,7 +6557,7 @@ function ZakkaartApp() {
       ))}
 
       {/* Studenten */}
-      <Collapse title="Studenten / leerlingen" color="#16A085">
+      <Collapse title="Studenten / leerlingen" color="#16A085" icon={Icons.users}>
         <div style={{ overflowX: "auto" }}>
           <div style={{
             display: "grid",
@@ -6608,7 +6601,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Diensttoeslagen */}
-      <Collapse title="Diensttoeslagen (CAO-codes)" color="#F39C12">
+      <Collapse title="Diensttoeslagen (CAO-codes)" color="#F39C12" icon={Icons.calc}>
         <div style={{ fontSize: "11px", color: "#888", marginBottom: "10px", lineHeight: 1.5 }}>
           Codes die je terugziet in je rooster of jaarurenkaart.
         </div>
@@ -6637,7 +6630,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Balansverlof */}
-      <Collapse title="💰 Balansverlof" color="#16A085">
+      <Collapse title="💰 Balansverlof" color="#16A085" icon={Icons.calc}>
         <div style={{ fontSize: "11px", color: "#888", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Verlofuren sparen zonder vervaltermijn — voor je werk-privé balans.
         </div>
@@ -6708,7 +6701,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Tips */}
-      <Collapse title="Tips & contact" color="#3498DB">
+      <Collapse title="Tips & contact" color="#3498DB" icon={Icons.phone}>
         <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           <li><strong style={{ color: "#fff" }}>Periode invoeren:</strong> 1<sup>e</sup> t/m laatste dag van de maand (niet 1<sup>e</sup> tot 1<sup>e</sup>)</li>
           <li><strong style={{ color: "#fff" }}>Jaarurenkaart</strong> = voorheen "moederkaart" — real-time saldo</li>
@@ -6721,7 +6714,7 @@ function ZakkaartApp() {
 
   const renderBuizen = () => (
     <div>
-      <Collapse title="Buissoorten AUMC, locatie AMC — CDL" color="#E74C3C" defaultOpen={true}>
+      <Collapse title="Buissoorten AUMC, locatie AMC — CDL" color="#E74C3C" defaultOpen={true} icon={Icons.tube}>
         <div style={{ fontSize: "11px", color: "#666", marginBottom: "10px" }}>
           Tik op de dop voor een afbeelding · AUMC, locatie AMC
         </div>
@@ -6757,7 +6750,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="Niet versturen via buizenpost" color="#E74C3C">
+      <Collapse title="Niet versturen via buizenpost" color="#E74C3C" icon={Icons.alert}>
         {NIET_BUIZENPOST.map((item, i) => (
           <div key={i} style={{
             fontSize: "13px", color: "#ccc",
@@ -6770,7 +6763,7 @@ function ZakkaartApp() {
         ))}
       </Collapse>
 
-      <Collapse title="Etiket plakken" color="#3498DB">
+      <Collapse title="Etiket plakken" color="#3498DB" icon={Icons.tube}>
         <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.7 }}>
           Plak etiketten correct op de bijbehorende buizen.
         </div>
@@ -7249,7 +7242,7 @@ function ZakkaartApp() {
         </div>
 
         {ecgTab === "patronen" && ECG_PATRONEN_SECTIONS.map((sectie, i) => (
-          <Collapse key={i} title={sectie.title} color={sectie.color}>
+          <Collapse key={i} title={sectie.title} color={sectie.color} icon={Icons.heart}>
             {sectie.svg && (
               <div style={{ background: "#e8f0e8", borderRadius: 8, padding: "6px 4px", marginBottom: 10, overflow: "hidden" }}>
                 <svg viewBox={sectie.svg.viewBox || "0 0 320 80"} width="100%" style={{ display: "block" }}
@@ -7288,7 +7281,7 @@ function ZakkaartApp() {
         ))}
 
         {ecgTab === "stappenplan" && ECG_STAPPEN.map((stap, i) => (
-          <Collapse key={i} title={`${stap.nr}: ${stap.title}`} color={stap.color} defaultOpen={i === 0}>
+          <Collapse key={i} title={`${stap.nr}: ${stap.title}`} color={stap.color} defaultOpen={i === 0} icon={Icons.heart}>
             {stap.items.map((item, j) => row(item.label, item.value, item.note))}
           </Collapse>
         ))}
@@ -7411,7 +7404,7 @@ function ZakkaartApp() {
 
     return (
       <div>
-        <Collapse title="Klaarzetlijst cardio" color={KLEUR}>
+        <Collapse title="Klaarzetlijst cardio" color={KLEUR} icon={Icons.clipboard}>
           {sub("Positionering")}
           {li([
             "Rugligging, armen langs het lichaam in cardioschelpen met gelpads",
@@ -7440,7 +7433,7 @@ function ZakkaartApp() {
           {KLAARZET_OVERLEG.map((x, i) => <React.Fragment key={i}>{medRow(x.m, x.c)}</React.Fragment>)}
         </Collapse>
 
-        <Collapse title="Stappen van de operatie" color="#E67E22">
+        <Collapse title="Stappen van de operatie" color="#E67E22" icon={Icons.clipboard}>
           {STAPPEN.map((s, i) => (
             <div key={i} style={{
               background: "#E67E2212", border: "1px solid #E67E2240", borderLeft: "4px solid #E67E22",
@@ -7455,7 +7448,7 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="Cardio-ingrepen" color="#C0392B">
+        <Collapse title="Cardio-ingrepen" color="#C0392B" icon={Icons.heart}>
           {INGREPEN.map((ing, i) => (
             <div key={i} style={{
               background: `${KLEUR}10`, border: `1px solid ${KLEUR}35`, borderLeft: `4px solid ${KLEUR}`,
@@ -7472,11 +7465,11 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="ECC-checklist (aan/van de pomp)" color="#3498DB">
+        <Collapse title="ECC-checklist (aan/van de pomp)" color="#3498DB" icon={Icons.clipboard}>
           {ECC_FASES.map((f, i) => kader(f.kleur, f.f, li(f.items, f.kleur)))}
         </Collapse>
 
-        <Collapse title="Heparine · ACT · protamine · TXA" color="#9B59B6">
+        <Collapse title="Heparine · ACT · protamine · TXA" color="#9B59B6" icon={Icons.pill}>
           {HEPARINE.map((x, i) => (
             <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontWeight: 700, color: "#fff", fontSize: "13px", marginBottom: "3px" }}>{x.m}</div>
@@ -7485,7 +7478,7 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="Inotropica & vasopressoren — bereiding" color="#E67E22">
+        <Collapse title="Inotropica & vasopressoren — bereiding" color="#E67E22" icon={Icons.pill}>
           <div style={{ fontSize: "11px", color: "#888", fontStyle: "italic", marginBottom: "10px" }}>
             Standaard spuitenpomp-bereidingen CAPU OK (50 ml). Verifieer met protocol 'Inotropica en Medicatie CAPU OK'.
           </div>
@@ -7504,7 +7497,7 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="Klepafwijkingen — hemodynamische doelen" color="#16A085">
+        <Collapse title="Klepafwijkingen — hemodynamische doelen" color="#16A085" icon={Icons.heart}>
           <div style={{ fontSize: "11px", color: "#888", fontStyle: "italic", marginBottom: "10px" }}>
             Algemene leerregels — patiëntspecifiek beleid volgt de anesthesioloog.
           </div>
@@ -7513,7 +7506,7 @@ function ZakkaartApp() {
           )))}
         </Collapse>
 
-        <Collapse title="Afkortingen cardio" color="#2980B9">
+        <Collapse title="Afkortingen cardio" color="#2980B9" icon={Icons.book}>
           {AFKORTINGEN.map((x, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#2980B9", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>{x[0]}</span>
@@ -7522,7 +7515,7 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="⚠ Spoed — verwijzing" color="#E74C3C">
+        <Collapse title="⚠ Spoed — verwijzing" color="#E74C3C" icon={Icons.alert}>
           <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.6, marginBottom: "12px" }}>
             Bij een acute situatie: volg de <strong style={{ color: "#E74C3C" }}>fysieke spoedbundel cardiochirurgie</strong> op de OK (of via QR-code). Deze app vervangt de bundel niet — bij calamiteit altijd de bundel + zorgteam erbij.
           </div>
