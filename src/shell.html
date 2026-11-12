@@ -140,7 +140,7 @@
     .zk-kv-label { font-size: 16px; color: var(--text); min-width: 0; }
     .zk-kv-sub { display: block; font-size: 13px; color: var(--label2); margin-top: 1px; }
     .zk-kv-value { font-size: 20px; font-weight: 600; text-align: right; flex-shrink: 0; max-width: 58%; }
-    .zk-kv-value small { font-size: 13px; font-weight: 400; color: var(--label2); margin-left: 3px; }
+    .zk-kv-value small { font-size: 13px; font-weight: 400; color: var(--label2); }
     .zk-cap { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--label2); margin-bottom: 6px; }
     .zk-ref-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; border-radius: 7px; font-size: 14px; color: var(--label2); }
     .zk-ref-row.is-on { background: var(--fill); color: var(--label); }
@@ -176,7 +176,7 @@
   <!-- ====== Toegangsbeveiliging (eenvoudige drempel, geen echte beveiliging) ====== -->
   <div id="auth-gate">
     <form id="auth-form">
-      <img src="{{TOUCH}}" alt="" />
+      <img src="{{GATE_ICON}}" alt="" />
       <div class="gate-title">{{GATE_SUB}}</div>
       <div class="gate-sub">Voer het wachtwoord in</div>
       <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Wachtwoord" aria-label="Wachtwoord" />
@@ -223,5 +223,13 @@
   </script>
   <!-- ====== Einde toegangsbeveiliging ====== -->
 {{SCRIPTS}}
+  <script>
+    // Offline werken: registreer de service worker (alleen op een echte https-site of lokaal bij testen)
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+  </script>
 </body>
 </html>

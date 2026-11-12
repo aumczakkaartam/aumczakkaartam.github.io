@@ -5447,7 +5447,7 @@ function ZakkaartApp() {
     const ValueRow = ({ label, value, unit, sub }) => (
       <div className="zk-kv">
         <span className="zk-kv-label">{label}{sub && <span className="zk-kv-sub">{sub}</span>}</span>
-        <span className="zk-kv-value">{value}{unit && <small>{unit}</small>}</span>
+        <span className="zk-kv-value">{value}{unit && <small> {unit}</small>}</span>
       </div>
     );
 

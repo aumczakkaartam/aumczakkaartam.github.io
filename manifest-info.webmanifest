@@ -1,13 +1,20 @@
 {
   "name": "Zakkaart Info",
   "short_name": "Zakkaart Info",
+  "id": "./info.html",
   "start_url": "./info.html",
-  "scope": "./",
+  "scope": "./info.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
+    {
+      "src": "icons/icon-info-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "icons/icon-info-512.png",
       "sizes": "512x512",

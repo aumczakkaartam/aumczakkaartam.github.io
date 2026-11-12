@@ -88,12 +88,17 @@ for (const [variant, v] of Object.entries(VARIANTS)) {
     .replace(/\{\{ICON\}\}/g, v.icon).replace(/\{\{TOUCH\}\}/g, v.touch).replace(/\{\{MANIFEST\}\}/g, v.manifest)
     .replace(/\{\{GATE_KEY\}\}/g, v.gateKey).replace(/\{\{PASS_HASH\}\}/g, v.passHash)
     .replace(/\{\{GATE_MARK\}\}/g, v.gateMark).replace(/\{\{GATE_SUB\}\}/g, v.gateSub)
+    .replace("{{GATE_ICON}}", () => "data:image/png;base64," + fs.readFileSync(path.join(ROOT, v.touch)).toString("base64"))
     .replace("{{SCRIPTS}}", () => scripts);
   fs.writeFileSync(path.join(ROOT, v.out), html);
   fs.writeFileSync(path.join(ROOT, v.manifest), JSON.stringify({
-    name: v.title, short_name: v.short, start_url: "./" + (v.out === "index.html" ? "" : v.out), scope: "./",
+    name: v.title, short_name: v.short, id: "./" + (v.out === "index.html" ? "" : v.out),
+    start_url: "./" + (v.out === "index.html" ? "" : v.out), scope: "./" + (v.out === "index.html" ? "" : v.out),
     display: "standalone", orientation: "portrait", background_color: "#000000", theme_color: "#000000",
-    icons: [{ src: v.icon, sizes: "512x512", type: "image/png", purpose: "any maskable" }],
+    icons: [
+      { src: v.icon.replace("-512", "-192"), sizes: "192x192", type: "image/png", purpose: "any maskable" },
+      { src: v.icon, sizes: "512x512", type: "image/png", purpose: "any maskable" },
+    ],
   }, null, 2) + "\n");
   built.push({ file: v.out, kb: Math.round(html.length / 1024) });
 }
@@ -102,7 +107,7 @@ for (const [variant, v] of Object.entries(VARIANTS)) {
 if (fs.existsSync(path.join(ROOT, "src/sw.js"))) {
   const hash = crypto.createHash("sha256");
   for (const v of Object.values(VARIANTS)) hash.update(fs.readFileSync(path.join(ROOT, v.out)));
-  const assets = ["./", ...Object.values(VARIANTS).flatMap(v => ["./" + v.out, "./" + v.manifest, "./" + v.icon, "./" + v.touch])];
+  const assets = ["./", ...Object.values(VARIANTS).flatMap(v => ["./" + v.out, "./" + v.manifest, "./" + v.icon, "./" + v.icon.replace("-512", "-192"), "./" + v.touch])];
   fs.writeFileSync(path.join(ROOT, "sw.js"), read("src/sw.js")
     .replace("__CACHE_VERSION__", hash.digest("hex").slice(0, 12))
     .replace("__ASSETS__", JSON.stringify([...new Set(assets)])));
