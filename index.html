@@ -4453,6 +4453,20 @@ function ZakkaartApp() {
           <div style={{ fontWeight: 700, color: "#9B59B6", marginBottom: "6px" }}>🔑 Inloggen ROTEM (op OK)</div>
           <div>Inlognaam: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#fff" }}>rotem</span></div>
           <div>Wachtwoord: <span style={{ fontFamily: "'JetBrains Mono', monospace", color: "#fff" }}>Rotemremote1</span></div>
+          <a
+            href="https://apl-rotemlive-p.prod1.umcinfra.nl/rotem/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
+              marginTop: "10px", padding: "10px 12px", borderRadius: "8px",
+              background: "rgba(155,89,182,0.18)", border: "1px solid rgba(155,89,182,0.45)",
+              color: "#fff", fontWeight: 700, textDecoration: "none",
+            }}
+          >
+            <span>ROTEM live openen (GEMweb Live)</span>
+            <span style={{ color: "#9B59B6" }}>↗</span>
+          </a>
         </div>
 
         {ROTEM_PROTOCOL.map((stap, i) => (
