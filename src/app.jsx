@@ -3,6 +3,8 @@
 // Context waarmee een zoekresultaat de juiste Collapse automatisch openklapt + erheen scrollt
 const CollapseTargetCtx = React.createContext(null);
 const normTitle = s => (s || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+// Onzichtbaar afbreekpunt na "/" en ")" zodat lange samenstellingen netjes over twee regels vallen
+const zw = t => String(t).replace(/([\/)])(?=\S)/g, "$1\u200B");
 
 // Zoeksynoniemen voor de zoekbalk (fuzzy search via Fuse.js): merknaam <-> stofnaam
 // en veelgebruikte afkortingen/concepten, zodat "esmeron" ook "rocuronium" vindt en omgekeerd.
@@ -76,22 +78,14 @@ function Collapse({ title, color = "#fff", children, defaultOpen = false, icon =
 // SCROLL PICKER COMPONENT (iOS-stijl trommelroller)
 // ============================================================
 
-function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#30D158" }) {
+function ScrollPicker({ items, selectedIndex, onIndexChange, label }) {
   const ref = useRef(null);
-  const itemH = 44;
-  const visible = 3;
-  const pad = 1;
+  const itemH = 34;
   // Onthoudt of de laatste selectedIndex-wijziging van de eigen scroll/tik kwam.
   // Zo niet corrigeren we de scrollpositie NIET tijdens een lopende scrollbeweging
-  // van de gebruiker (dat gaf het "heen en weer"-gehaper) — alleen bij een externe
-  // wijziging (bv. de leeftijd-roller die het gewicht automatisch aanpast).
+  // van de gebruiker — alleen bij een externe wijziging (bv. de leeftijd die het
+  // gewicht automatisch aanpast).
   const isInternalChange = useRef(false);
-
-  const paddedItems = [
-    ...Array(pad).fill({ label: "", isPad: true }),
-    ...items,
-    ...Array(pad).fill({ label: "", isPad: true }),
-  ];
 
   useEffect(() => {
     if (isInternalChange.current) {
@@ -114,66 +108,83 @@ function ScrollPicker({ items, selectedIndex, onIndexChange, accentColor = "#30D
     }
   };
 
+  // Alle regels hebben dezelfde lettergrootte: tijdens het draaien verspringt er niets.
   return (
-    <div style={{ position: "relative", height: itemH * visible, overflow: "hidden", borderRadius: "12px" }}>
-      <div style={{
-        position: "absolute", top: itemH * pad, left: 0, right: 0, height: itemH,
-        background: `${accentColor}18`, border: `1px solid ${accentColor}50`,
-        borderRadius: "10px", pointerEvents: "none", zIndex: 2,
-        boxShadow: `0 0 14px ${accentColor}30, inset 0 0 8px ${accentColor}12`,
-      }} />
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: itemH * pad,
-        background: "linear-gradient(to bottom, #000000 30%, transparent)",
-        pointerEvents: "none", zIndex: 3,
-      }} />
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: itemH * pad,
-        background: "linear-gradient(to top, #000000 30%, transparent)",
-        pointerEvents: "none", zIndex: 3,
-      }} />
-      <div
-        ref={ref}
-        className="picker-scroll"
-        onScroll={handleScroll}
-        style={{
-          height: "100%", overflowY: "scroll",
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-        }}
-      >
-        {paddedItems.map((item, i) => {
-          const realIdx = i - pad;
-          const isSelected = realIdx === selectedIndex;
-          return (
-            <div
-              key={i}
-              onClick={() => {
-                if (item.isPad) return;
-                isInternalChange.current = true;
-                onIndexChange(realIdx);
-                if (ref.current) ref.current.scrollTop = realIdx * itemH;
-              }}
-              style={{
-                height: itemH, display: "flex", alignItems: "center",
-                justifyContent: "center", scrollSnapAlign: "center",
-                cursor: item.isPad ? "default" : "pointer",
-                fontSize: isSelected ? "17px" : "13px",
-                fontWeight: isSelected ? 700 : 400,
-                color: isSelected ? "#fff" : "rgba(235,235,245,0.3)",
-                fontFamily: "inherit",
-                textShadow: isSelected ? `0 0 14px ${accentColor}50` : "none",
-                transition: "font-size 0.12s ease-out, color 0.12s ease-out, text-shadow 0.12s ease-out",
-              }}
-            >
-              {!item.isPad ? item.label : ""}
-            </div>
-          );
-        })}
+    <div className="zk-wheel">
+      <div ref={ref} className="zk-wheel-scroll" onScroll={handleScroll} role="listbox" aria-label={label} tabIndex={0}>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="zk-wheel-item"
+            role="option"
+            aria-selected={i === selectedIndex}
+            onClick={() => {
+              isInternalChange.current = true;
+              onIndexChange(i);
+              if (ref.current) ref.current.scrollTop = i * itemH;
+            }}
+          >{item.label}</div>
+        ))}
       </div>
     </div>
   );
+}
+// Weergave van een dosis. Onder 0,1 tonen we twee significante cijfers, zodat
+// 0,0075 niet wordt afgerond naar 0,01 (dat scheelt bij lichte kinderen tientallen procenten).
+function fmtDose(d) {
+  if (d == null || isNaN(d)) return null;
+  if (d < 0.1) return String(parseFloat(d.toPrecision(2)));
+  return d < 1 ? d.toFixed(2) : d < 10 ? d.toFixed(1) : d.toFixed(0);
+}
+
+// Eén rekenfunctie voor dosis/concentratie/pompstand — gebruikt door zowel
+// de per-middel lijst als de Overzichtskaart, om afwijkende logica te voorkomen.
+function computeMedDosis(m, calcWeight, age, hasAge) {
+  let dosis = (calcWeight * m.factor);
+  // Atropine: minimum 0,1 mg en maximum 0,5 mg. Het minimum is hoger dan 0,02 mg/kg
+  // bij elk kind onder 5 kg; de rekenregel blijft staan, maar we melden het (minClamp).
+  let minClamp = false;
+  if (m.med.includes("Atropine")) {
+    minClamp = dosis < 0.1;
+    dosis = Math.max(0.1, Math.min(0.5, dosis));
+  }
+  // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
+  if (m.med === "Paracetamol" && calcWeight <= 10) {
+    dosis = calcWeight * 7.5;
+  }
+  // Cefuroxim: SWAB-richtlijn — vanaf 40 kg vaste volwassendosis (1,5 g), geen verdere opschaling
+  if (m.med === "Cefuroxim" && calcWeight >= 40) {
+    dosis = 1500;
+  }
+  // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
+  if (m.is421) {
+    dosis = calcWeight <= 10 ? calcWeight * 4
+      : calcWeight <= 20 ? 10 * 4 + (calcWeight - 10) * 2
+      : 10 * 4 + 10 * 2 + (calcWeight - 20) * 1;
+  }
+  const dosisStr = fmtDose(dosis);
+  // Heel kleine mg-doses ook in microgram tonen: minder kans op een kommafout
+  // (afgeleid van de getoonde mg-waarde, zodat beide regels altijd hetzelfde zeggen)
+  const altStr = m.unit.startsWith("mg") && dosis < 0.1
+    ? `${fmtDose(Math.round(parseFloat(dosisStr) * 1e6) / 1e3)} µg${m.unit.slice(2)}`
+    : null;
+  const perKgStr = minClamp ? String(parseFloat((dosis / calcWeight).toPrecision(2))).replace(".", ",") : null;
+  const medKleur = getMedKleur(m.med);
+  // AUMC: <3 jaar altijd 1% (10 mg/ml). Vanaf 3 jaar: inductie 1%, onderhoud 2% (20 mg/ml).
+  const isPropofol = m.med.includes("Propofol");
+  const propConc = isPropofol && hasAge
+    ? (age < 3 ? 10 : (m.perUur ? 20 : 10))
+    : null;
+  const propPct = propConc === 10 ? "1%" : propConc === 20 ? "2%" : null;
+  const propLabel = !hasAge ? null : age < 3 ? "<3 jr → 1%" : (m.perUur ? "≥3 jr, onderhoud → 2%" : "≥3 jr, inductie → 1%");
+  const propMl = propConc ? dosis / propConc : null;
+  const propMlStr = propMl != null ? fmtDose(propMl) : null;
+  // Generieke pompstand (ml/uur) voor infuusmiddelen met een vaste spuitconcentratie (m.pompConc, in dezelfde eenheid als m.unit)
+  const pompMlUur = m.pompConc
+    ? (m.unit.endsWith("/min") ? (dosis * 60) / m.pompConc : m.unit.endsWith("/uur") ? dosis / m.pompConc : null)
+    : null;
+  const pompMlUurStr = pompMlUur != null ? fmtDose(pompMlUur) : null;
+  return { dosis, dosisStr, altStr, minClamp, perKgStr, medKleur, isPropofol, propConc, propPct, propLabel, propMl, propMlStr, pompMlUur, pompMlUurStr };
 }
 
 function calcStandardWeight(ageYears) {
@@ -275,9 +286,9 @@ const AGE_ITEMS = (() => {
   return items;
 })();
 
-// Gewichtsitems voor trommelroller — prematuren/neonaten (0,5–2,5 kg) + 3 t/m 80 kg
+// Gewichten voor het wiel — prematuren/neonaten 0,5 t/m 2,9 kg per 100 gram, daarna 3 t/m 80 kg per kilo
 const WEIGHT_ITEMS = [
-  ...[1.5, 2, 2.5].map(v => ({ label: `${String(v).replace(".", ",")} kg`, value: v })),
+  ...Array.from({ length: 25 }, (_, i) => (5 + i) / 10).map(v => ({ label: `${String(v).replace(".", ",")} kg`, value: v })),
   ...Array.from({ length: 78 }, (_, i) => ({ label: `${i + 3} kg`, value: i + 3 })),
 ];
 const weightIndexFor = kg => Math.max(0, WEIGHT_ITEMS.findIndex(it => it.value === kg));
@@ -3390,7 +3401,7 @@ function ZakkaartApp() {
   const TableRow = ({ cells, header = false, accentKleur = null }) => (
     <div style={{
       display: "grid",
-      gridTemplateColumns: cells.length === 4 ? "1fr 1fr 1fr 1fr" : cells.length === 3 ? "1.2fr 1fr 1fr" : "1fr 1fr",
+      gridTemplateColumns: cells.length === 4 ? "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)" : cells.length === 3 ? "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr) minmax(0, 1fr)",
       gap: "6px",
       padding: header ? "8px 0" : "8px 4px",
       borderBottom: "0.5px solid rgba(84,84,88,0.65)",
@@ -3484,7 +3495,7 @@ function ZakkaartApp() {
           Brand / Beveiliging
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "12px", marginBottom: "16px" }}>
         <div style={{
           background: "linear-gradient(135deg, #FF9F0A, #FF9F0A)",
           borderRadius: "12px",
@@ -3528,16 +3539,16 @@ function ZakkaartApp() {
         ))}
       </Collapse>
       <Collapse title="Reversibele oorzaken (4H's + 4T's)" color="#FF453A" icon={Icons.alert}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px" }}>
           {ALS_REVERSIBEL_KORT.map((item, i) => (
             <div key={i} style={{
               padding: "8px 10px",
               background: "rgba(255,69,58,0.1)",
               borderRadius: "8px",
-              fontSize: "14px",
+              fontSize: "13px",
               color: "rgba(235,235,245,0.8)",
               border: "1px solid rgba(255,69,58,0.15)",
-            }}>{item}</div>
+            }}>{zw(item)}</div>
           ))}
         </div>
       </Collapse>
@@ -3565,24 +3576,9 @@ function ZakkaartApp() {
     const actief = opties.find(o => o.id === locatie) || opties[0];
     return (
       <div>
-        <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+        <div className="zk-seg" role="group" aria-label="Locatie" style={{ marginBottom: "14px" }}>
           {opties.map(o => (
-            <button
-              key={o.id}
-              onClick={() => setLocatie(o.id)}
-              style={{
-                flex: 1,
-                padding: "11px",
-                borderRadius: "10px",
-                border: `1px solid ${locatie === o.id ? o.color : "rgba(118,118,128,0.32)"}`,
-                background: locatie === o.id ? `${o.color}22` : "rgba(118,118,128,0.18)",
-                color: locatie === o.id ? "#fff" : "rgba(235,235,245,0.6)",
-                fontWeight: 600,
-                fontSize: "15px",
-                fontFamily: "inherit",
-                cursor: "pointer",
-              }}
-            >{o.label}</button>
+            <button key={o.id} type="button" className={locatie === o.id ? "is-on" : ""} aria-pressed={locatie === o.id} onClick={() => setLocatie(o.id)}>{o.label}</button>
           ))}
         </div>
         {locatie === "vumc"
@@ -4051,7 +4047,7 @@ function ZakkaartApp() {
               paddingLeft: "8px",
             }}>
               <div style={{ fontWeight: 700, color: "#fff", fontSize: "15px", marginBottom: "6px" }}>{m.naam}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "4px 10px" }}>
                 {[
                   { label: "Dosis", val: m.dosis },
                   { label: "~75 kg", val: m.obv75 },
@@ -4117,7 +4113,7 @@ function ZakkaartApp() {
               borderLeft: "4px solid #40C8E0", borderRadius: "10px", padding: "12px", marginBottom: "12px",
             }}>
               <div style={{ fontWeight: 700, color: "#40C8E0", fontSize: "16px", marginBottom: "8px" }}>{m.naam}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginBottom: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px 12px", marginBottom: "10px" }}>
                 <div style={{ fontSize: "13px" }}>
                   <div style={{ color: "rgba(235,235,245,0.6)", marginBottom: "2px" }}>Zonder adrenaline</div>
                   <div style={{ fontFamily: "inherit", color: "#fff", fontSize: "14px" }}>
@@ -4390,7 +4386,7 @@ function ZakkaartApp() {
             {stap.triggers.map((trig, ti) => (
               <div key={ti} style={{
                 display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
+                gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
                 gap: "8px",
                 alignItems: "center",
                 padding: "8px 0",
@@ -4462,7 +4458,7 @@ function ZakkaartApp() {
       </Collapse>
 
       <Collapse title="ROTEM — Tests in 1 oogopslag" color="#BF5AF2" icon={Icons.droplet}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "8px" }}>
           {ROTEM_TESTS.map((t, i) => (
             <div key={i} style={{
               background: `${t.kleur}10`,
@@ -4563,7 +4559,7 @@ function ZakkaartApp() {
             gap: "12px",
           }}>
             <span style={{ color: "rgba(235,235,245,0.8)", fontSize: "14px" }}>{v.item}</span>
-            <span style={{ fontFamily: "inherit", color: "#FFD60A", fontSize: "13px", textAlign: "right", flexShrink: 0 }}>{v.waarde}</span>
+            <span style={{ fontFamily: "inherit", color: "#FFD60A", fontSize: "13px", textAlign: "right", maxWidth: "62%" }}>{v.waarde}</span>
           </div>
         ))}
       </Collapse>
@@ -4618,7 +4614,7 @@ function ZakkaartApp() {
             paddingLeft: "8px",
           }}>
             <div style={{ fontWeight: 700, color: "#fff", fontSize: "15px", marginBottom: "6px" }}>{m.naam}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "4px 10px" }}>
               {[
                 { label: "Dosis", val: m.dosis },
                 { label: "Maximum", val: m.max },
@@ -4703,7 +4699,7 @@ function ZakkaartApp() {
       </Collapse>
 
       <Collapse title="4H's + 4T's — Tik voor details" color="#FF453A" icon={Icons.alert}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "6px" }}>
           {ALS_REVERSIBEL_KORT.map((label, i) => {
             const items = labelToItems[label] || [];
             const isActive = items.some(t => expandedALS === t);
@@ -4715,7 +4711,7 @@ function ZakkaartApp() {
                   padding: "10px 10px",
                   background: isActive ? "rgba(255,69,58,0.25)" : "rgba(255,69,58,0.08)",
                   borderRadius: "8px",
-                  fontSize: "14px",
+                  fontSize: "13px",
                   color: isActive ? "#fff" : "rgba(235,235,245,0.8)",
                   border: isActive ? "1.5px solid rgba(255,69,58,0.5)" : "1px solid rgba(255,69,58,0.12)",
                   cursor: "pointer",
@@ -4724,7 +4720,7 @@ function ZakkaartApp() {
                   fontWeight: isActive ? 600 : 400,
                   transition: "all 0.15s ease",
                 }}
-              >{label}</button>
+              >{zw(label)}</button>
             );
           })}
         </div>
@@ -4864,7 +4860,7 @@ function ZakkaartApp() {
           Geplakt onder de pc op de muur, en op het dagcentrum bij de intercom.
           <br /><br />
           <span style={{ color: "#63E6E2" }}>Digitaal nalezen?</span> Gebruik de knoppen
-          "Spoedbundel volw." / "Spoedbundel kind" boven aan het startscherm.
+          "Spoedbundel volwassenen" / "Spoedbundel kind" boven aan het startscherm.
         </div>
       </Collapse>
       <Collapse title="Moeilijke Luchtwegkar (MLK)" color="#BF5AF2" icon={Icons.wind}>
@@ -5066,7 +5062,7 @@ function ZakkaartApp() {
         </div>
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", border: "0.5px solid rgba(84,84,88,0.65)", borderRadius: "8px" }}>
           <div style={{ minWidth: "560px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "100px repeat(12,1fr)", background: "rgba(118,118,128,0.18)", borderBottom: "0.5px solid rgba(84,84,88,0.65)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "100px repeat(12,minmax(0, 1fr))", background: "rgba(118,118,128,0.18)", borderBottom: "0.5px solid rgba(84,84,88,0.65)" }}>
               <div style={{ padding: "6px 8px", fontSize: "11px", fontWeight: 700, color: "rgba(235,235,245,0.6)", fontFamily: "inherit" }}>EPA</div>
               {[1, 2, 3, 4, 5, 6].map(hj => (
                 <div key={hj} style={{ gridColumn: "span 2", textAlign: "center", padding: "6px 0", fontSize: "11px", fontWeight: 700, color: "rgba(235,235,245,0.6)", borderLeft: "2px solid rgba(118,118,128,0.32)" }}>{hj}e hj</div>
@@ -5075,7 +5071,7 @@ function ZakkaartApp() {
             {EPA_TIJDSCHEMA.map((e, ri) => {
               const c = EPA_CAT_KLEUR[e.cat];
               return (
-                <div key={ri} style={{ display: "grid", gridTemplateColumns: "100px repeat(12,1fr)", borderBottom: ri < EPA_TIJDSCHEMA.length - 1 ? "1px solid rgba(118,118,128,0.24)" : "none" }}>
+                <div key={ri} style={{ display: "grid", gridTemplateColumns: "100px repeat(12,minmax(0, 1fr))", borderBottom: ri < EPA_TIJDSCHEMA.length - 1 ? "1px solid rgba(118,118,128,0.24)" : "none" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "5px", padding: "0 6px", minHeight: "26px", overflow: "hidden" }}>
                     <span style={{ width: "10px", height: "10px", borderRadius: "3px", background: c, flexShrink: 0 }} />
                     <span style={{ fontFamily: "inherit", fontSize: "11px", color: "rgba(235,235,245,0.8)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.code}</span>
@@ -5113,7 +5109,7 @@ function ZakkaartApp() {
           <div style={{ fontSize: "13px", color: "rgba(235,235,245,0.8)", lineHeight: 1.6, marginBottom: "10px" }}>
             Een <b>EPA</b> (Entrustable Professional Activity) is een toevertrouwbare beroepsactiviteit: een afgebakende taak die je in de praktijk leert. Per EPA werk je toe naar <b>niveau 4</b> = de activiteit zelfstandig uitvoeren met toezicht op afstand. Het <b>streefmoment</b> geeft aan in welk halfjaar je dat niveau hoort te bereiken.
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 10px", fontSize: "13px", color: "rgba(235,235,245,0.8)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "4px 10px", fontSize: "13px", color: "rgba(235,235,245,0.8)" }}>
             <span style={{ fontFamily: "inherit", color: "#63E6E2", fontWeight: 700 }}>MO</span><span>Medisch Ondersteunend</span>
             <span style={{ fontFamily: "inherit", color: "#63E6E2", fontWeight: 700 }}>AZ</span><span>Acute Zorg</span>
             <span style={{ fontFamily: "inherit", color: "#63E6E2", fontWeight: 700 }}>AM</span><span>Anesthesiemedewerker</span>
@@ -5211,13 +5207,13 @@ function ZakkaartApp() {
                 }}>
                   <span style={{
                     color: "rgba(235,235,245,0.6)",
-                    minWidth: "120px",
+                    width: "124px",
                     flexShrink: 0,
                     fontSize: "12px",
                     textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+                    letterSpacing: "0.2px",
                     paddingTop: "2px",
-                  }}>{row.label}</span>
+                  }}>{zw(row.label)}</span>
                   <span style={{ color: "rgba(235,235,245,0.8)" }}>{row.val}</span>
                 </div>
               ))}
@@ -5239,13 +5235,13 @@ function ZakkaartApp() {
               }}>
                 <span style={{
                   color: "rgba(235,235,245,0.6)",
-                  minWidth: "120px",
+                  width: "124px",
                   flexShrink: 0,
                   fontSize: "12px",
                   textTransform: "uppercase",
-                  letterSpacing: "0.5px",
+                  letterSpacing: "0.2px",
                   paddingTop: "2px",
-                }}>{row.label}</span>
+                }}>{zw(row.label)}</span>
                 <span style={{ color: "rgba(235,235,245,0.8)" }}>{row.val}</span>
               </div>
             ))}
@@ -5295,6 +5291,7 @@ function ZakkaartApp() {
     const hasAge = age != null;
     const hasWeight = w != null;
     const calcWeight = w;
+    const kg = v => String(v).replace(".", ",");
     // AUMC: hele én halve tubematen → afronden op 0,5. Ook < 1 jaar berekenen.
     const ettNum = !hasAge ? null : (
       age < 0.5 ? 3.5 :          // < 6 mnd
@@ -5312,7 +5309,7 @@ function ZakkaartApp() {
       age < 12 ? "Mac 2–3 / Miller 2" :
       "Mac 3 / Miller 3"
     );
-    // Prematuur/neonaat (< 3 kg op gewichtsroller): tube-maten op gewicht, niet op leeftijd
+    // Prematuur/neonaat (< 3 kg op het gewichtswiel): tube-maten op gewicht, niet op leeftijd
     const isPrematuur = hasWeight && w < 3;
     const neoBand = !isPrematuur ? null : (w < 1 ? NEONAAT_TUBES[0] : w < 2 ? NEONAAT_TUBES[1] : NEONAAT_TUBES[2]);
     const tubeMaat = isPrematuur ? neoBand.ett : ettMaat;
@@ -5320,8 +5317,10 @@ function ZakkaartApp() {
     const tubeBlad = isPrematuur ? "Miller 0" : larynxBlad;
     const tubeSonde = isPrematuur ? neoBand.sonde : maagSonde;
     const tubeKath = isPrematuur ? neoBand.katheter : blaasKatheter;
-    // Beademingskapje & LMA-maat — gedeeld tussen de losse Collapse en de Overzichtskaart
-    const masker = hasAge ? (MASKER_MATEN.find(m => age >= m.leeftijdMin && age < m.leeftijdMax) || MASKER_MATEN[MASKER_MATEN.length - 1]) : null;
+    // Beademingskapje & LMA-maat — gedeeld tussen de losse Collapse en de Overzichtskaart.
+    // Onder 3 kg geldt de rij "Prematuur/Neonaat" uit de kapjestabel.
+    const masker = isPrematuur ? MASKER_MATEN[0]
+      : hasAge ? (MASKER_MATEN.find(m => age >= m.leeftijdMin && age < m.leeftijdMax) || MASKER_MATEN[MASKER_MATEN.length - 1]) : null;
     const lma = hasAge ? (LMA_MATEN.find(g => age >= g.leeftijdMin && age < g.leeftijdMax) || LMA_MATEN[LMA_MATEN.length - 1]) : null;
 
     const categorieGroepen = {};
@@ -5329,48 +5328,6 @@ function ZakkaartApp() {
       if (!categorieGroepen[m.categorie]) categorieGroepen[m.categorie] = [];
       categorieGroepen[m.categorie].push(m);
     });
-
-    // Eén rekenfunctie voor dosis/concentratie/pompstand — gebruikt door zowel
-    // de per-middel lijst als de Overzichtskaart, om afwijkende logica te voorkomen.
-    const computeMedDosis = (m, calcWeight, age, hasAge) => {
-      let dosis = (calcWeight * m.factor);
-      // Clamp atropine
-      if (m.med.includes("Atropine")) {
-        dosis = Math.max(0.1, Math.min(0.5, dosis));
-      }
-      // Paracetamol: lagere dosis bij <=10 kg (Kinderformularium/FK)
-      if (m.med === "Paracetamol" && calcWeight <= 10) {
-        dosis = calcWeight * 7.5;
-      }
-      // Cefuroxim: SWAB-richtlijn — vanaf 40 kg vaste volwassendosis (1,5 g), geen verdere opschaling
-      if (m.med === "Cefuroxim" && calcWeight >= 40) {
-        dosis = 1500;
-      }
-      // Onderhoudsvocht 4-2-1 regel (Holliday-Segar): getrapte berekening i.p.v. simpele factor x gewicht
-      if (m.is421) {
-        dosis = calcWeight <= 10 ? calcWeight * 4
-          : calcWeight <= 20 ? 10 * 4 + (calcWeight - 10) * 2
-          : 10 * 4 + 10 * 2 + (calcWeight - 20) * 1;
-      }
-      const dosisStr = dosis < 1 ? dosis.toFixed(2) : dosis < 10 ? dosis.toFixed(1) : dosis.toFixed(0);
-      const medKleur = getMedKleur(m.med);
-      // AUMC protocol: <3 jaar Propofol 1% (10 mg/ml), ≥3 jaar Propofol 2% (20 mg/ml)
-      const isPropofol = m.med.includes("Propofol");
-      // AUMC: <3 jaar altijd 1% (10 mg/ml). Vanaf 3 jaar: inductie 1%, onderhoud 2% (20 mg/ml).
-      const propConc = isPropofol && hasAge
-        ? (age < 3 ? 10 : (m.perUur ? 20 : 10))
-        : null;
-      const propPct = propConc === 10 ? "1%" : propConc === 20 ? "2%" : null;
-      const propLabel = !hasAge ? null : age < 3 ? "<3 jr → 1%" : (m.perUur ? "≥3 jr, onderhoud → 2%" : "≥3 jr, inductie → 1%");
-      const propMl = propConc ? dosis / propConc : null;
-      const propMlStr = propMl != null ? (propMl < 1 ? propMl.toFixed(2) : propMl < 10 ? propMl.toFixed(1) : propMl.toFixed(0)) : null;
-      // Generieke pompstand (ml/uur) voor infuusmiddelen met een vaste spuitconcentratie (m.pompConc, in dezelfde eenheid als m.unit)
-      const pompMlUur = m.pompConc
-        ? (m.unit.endsWith("/min") ? (dosis * 60) / m.pompConc : m.unit.endsWith("/uur") ? dosis / m.pompConc : null)
-        : null;
-      const pompMlUurStr = pompMlUur != null ? (pompMlUur < 1 ? pompMlUur.toFixed(2) : pompMlUur < 10 ? pompMlUur.toFixed(1) : pompMlUur.toFixed(0)) : null;
-      return { dosis, dosisStr, medKleur, isPropofol, propConc, propPct, propLabel, propMl, propMlStr, pompMlUur, pompMlUurStr };
-    };
 
     // Curatie voor de Overzichtskaart: kernmedicatie/waarden per fase van de ingreep
     const OVERZICHT_MEDS = calcWeight ? [
@@ -5387,53 +5344,23 @@ function ZakkaartApp() {
       }).filter(Boolean),
     })) : [];
 
+    const zoom = zoomMap[settings.fontSize] || 1;
+    const ValueRow = ({ label, value, unit, sub }) => (
+      <div className="zk-kv">
+        <span className="zk-kv-label">{label}{sub && <span className="zk-kv-sub">{sub}</span>}</span>
+        <span className="zk-kv-value">{value}{unit && <small>{unit}</small>}</span>
+      </div>
+    );
+
     return (
       <div>
-        {/* Sticky calculator header met trommelrollers */}
-        <div style={{
-          position: "sticky", top: "calc(44px + env(safe-area-inset-top, 0px))", zIndex: 10,
-          background: "linear-gradient(180deg, #1C1C1E 0%, #000000 100%)",
-          border: `1px solid ${ACCENT}40`,
-          borderRadius: "16px",
-          padding: "14px 14px 10px",
-          marginBottom: "16px",
-          boxShadow: `0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px ${ACCENT}20`,
-        }}>
-          {/* Titel */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-            <div style={{
-              width: "8px", height: "8px", borderRadius: "50%",
-              background: ACCENT, flexShrink: 0,
-              boxShadow: `0 0 8px ${ACCENT}`,
-            }} />
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#fff", letterSpacing: "0.5px" }}>
-              {t("Kinderdosering", "Pediatric dosing")}
-            </div>
-            {calcWeight && (
-              <button
-                onClick={() => setShowOverzichtskaart(v => !v)}
-                title={t("Overzichtskaart", "Summary card")}
-                style={{
-                  marginLeft: "auto", width: "26px", height: "26px", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: showOverzichtskaart ? `${ACCENT}22` : "rgba(118,118,128,0.24)",
-                  border: `1px solid ${showOverzichtskaart ? ACCENT : "rgba(118,118,128,0.32)"}`,
-                  borderRadius: "8px", fontSize: "14px", cursor: "pointer",
-                  boxShadow: showOverzichtskaart ? `0 0 10px ${ACCENT}35` : "none",
-                  transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s",
-                }}
-              >📋</button>
-            )}
-          </div>
-
-          {/* Rollers */}
-          <div style={{ display: "flex", gap: "8px", alignItems: "stretch" }}>
-            {/* Leeftijd */}
-            <div style={{ flex: 1, background: "rgba(118,118,128,0.18)", borderRadius: "12px", padding: "8px 6px 4px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: ACCENT, textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "center", marginBottom: "6px" }}>
-                {t("Leeftijd", "Age")}
-              </div>
+        {/* Wielen: blijven in beeld tijdens het scrollen */}
+        <div className="zk-calc-head" style={{ top: `calc((44px + env(safe-area-inset-top, 0px)) / ${zoom})` }}>
+          <div className="zk-wheels">
+            <div>
+              <div className="zk-wheel-label">{t("Leeftijd", "Age")}</div>
               <ScrollPicker
+                label={t("Leeftijd", "Age")}
                 items={AGE_ITEMS}
                 selectedIndex={calcLeeftijdIdx}
                 onIndexChange={idx => {
@@ -5443,50 +5370,59 @@ function ZakkaartApp() {
                   setCalcGewichtIdx(weightIndexFor(stdW));
                   setGewichtManual(false);
                 }}
-                accentColor={ACCENT}
               />
             </div>
-
-            {/* Divider */}
-            <div style={{ display: "flex", alignItems: "center", color: "rgba(235,235,245,0.3)", fontSize: "20px", flexShrink: 0 }}>→</div>
-
-            {/* Gewicht */}
-            <div style={{ flex: 1, background: gewichtManual ? "rgba(255,214,10,0.08)" : "rgba(118,118,128,0.18)", borderRadius: "12px", padding: "8px 6px 4px", border: gewichtManual ? "1px solid rgba(255,214,10,0.3)" : "1px solid transparent" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: gewichtManual ? "#FFD60A" : ACCENT, textTransform: "uppercase", letterSpacing: "0.3px", textAlign: "center", marginBottom: "6px" }}>
-                {gewichtManual ? t("Gewicht (handmatig)", "Weight (manual)") : t("Gewicht", "Weight")}
+            <div>
+              <div className="zk-wheel-label" style={gewichtManual ? { color: "#FFD60A" } : undefined}>
+                {gewichtManual ? t("Gewicht · handmatig", "Weight · manual") : t("Gewicht · standaard", "Weight · standard")}
               </div>
               <ScrollPicker
+                label={t("Gewicht", "Weight")}
                 items={WEIGHT_ITEMS}
                 selectedIndex={calcGewichtIdx}
                 onIndexChange={idx => { setCalcGewichtIdx(idx); setGewichtManual(true); }}
-                accentColor={gewichtManual ? "#FFD60A" : ACCENT}
               />
             </div>
           </div>
-
-          {/* Samenvatting huidig gewicht */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", padding: "8px 12px", background: "rgba(118,118,128,0.18)", borderRadius: "8px" }}>
-            <span style={{ fontSize: "13px", color: "rgba(235,235,245,0.45)" }}>{AGE_ITEMS[calcLeeftijdIdx]?.label}</span>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff", fontFamily: "inherit" }}>
-              {WEIGHT_ITEMS[calcGewichtIdx]?.label}
-              {!gewichtManual && <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.3)", marginLeft: "4px" }}>std</span>}
+          <div className="zk-calc-bar">
+            <span data-calc-summary>
+              {AGE_ITEMS[calcLeeftijdIdx]?.label} · {WEIGHT_ITEMS[calcGewichtIdx]?.label}
+              {isPrematuur && ` (${Math.round(w * 1000)} g)`}
+            </span>
+            <span style={{ display: "flex", gap: "14px" }}>
+              {gewichtManual && (
+                <button type="button" className="zk-link" onClick={() => {
+                  setCalcGewichtIdx(weightIndexFor(calcStandardWeight(age)));
+                  setGewichtManual(false);
+                }}>{t("Standaardgewicht", "Standard weight")}</button>
+              )}
+              {calcWeight && (
+                <button type="button" className="zk-link" aria-pressed={showOverzichtskaart} onClick={() => setShowOverzichtskaart(v => !v)}>
+                  {showOverzichtskaart ? t("Verberg overzicht", "Hide summary") : t("Overzicht", "Summary")}
+                </button>
+              )}
             </span>
           </div>
         </div>
 
+        {isPrematuur && (
+          <div className="zk-notice" data-neonaat-melding>
+            <strong>Prematuur of neonaat ({kg(w)} kg).</strong> De doseringen hieronder zijn kale rekenwaarden per kilo. Ze zijn niet
+            gecontroleerd voor deze groep. Overleg met de (kinder)anesthesioloog.
+          </div>
+        )}
+
         {/* Overzichtskaart: compacte samenvatting van kernwaarden per fase */}
         {showOverzichtskaart && calcWeight && (
           <Card>
-            <SectionTitle color={ACCENT}>
-              📋 {t("Overzicht", "Summary")} — {AGE_ITEMS[calcLeeftijdIdx]?.label} · {WEIGHT_ITEMS[calcGewichtIdx]?.label}
+            <SectionTitle>
+              {t("Overzicht", "Summary")} — {AGE_ITEMS[calcLeeftijdIdx]?.label} · {WEIGHT_ITEMS[calcGewichtIdx]?.label}
             </SectionTitle>
 
             {/* Luchtweg */}
             {(hasAge || isPrematuur) && (
               <div style={{ marginBottom: "14px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#FFD60A", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "6px" }}>
-                  {t("Luchtweg", "Airway")}
-                </div>
+                <div className="zk-cap" style={{ color: "#FFD60A" }}>{t("Luchtweg", "Airway")}</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {[
                     { label: "ETT", waarde: tubeMaat, eenheid: "" },
@@ -5494,12 +5430,9 @@ function ZakkaartApp() {
                     { label: "Kapje", waarde: masker?.maat, eenheid: "" },
                     { label: "LMA", waarde: lma?.maat, eenheid: "" },
                   ].filter(x => x.waarde != null).map((x, i) => (
-                    <div key={i} style={{
-                      background: "rgba(255,214,10,0.08)", borderRadius: "8px", padding: "6px 10px",
-                      border: "1px solid rgba(255,214,10,0.15)",
-                    }}>
-                      <span style={{ fontFamily: "inherit", fontWeight: 700, color: "#FFD60A", fontSize: "14px" }}>{x.waarde}{x.eenheid}</span>
-                      <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.6)", marginLeft: "5px" }}>{x.label}</span>
+                    <div key={i} style={{ background: "rgba(118,118,128,0.24)", borderRadius: "8px", padding: "6px 10px" }}>
+                      <span style={{ fontWeight: 600, color: "#FFD60A", fontSize: "15px" }}>{x.waarde}{x.eenheid}</span>
+                      <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginLeft: "5px" }}>{x.label}</span>
                     </div>
                   ))}
                 </div>
@@ -5509,28 +5442,22 @@ function ZakkaartApp() {
             {/* Medicatie per fase */}
             {OVERZICHT_MEDS.map((groep, gi) => (
               <div key={gi} style={{ marginBottom: gi < OVERZICHT_MEDS.length - 1 ? "14px" : 0 }}>
-                <div style={{
-                  fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "6px",
-                  color: groep.fase === "Nood" ? "#FF453A" : ACCENT,
-                }}>
-                  {t(groep.fase, groep.fase)}
-                </div>
+                <div className="zk-cap" style={{ color: groep.fase === "Nood" ? "#FF453A" : ACCENT }}>{t(groep.fase, groep.fase)}</div>
                 {groep.items.map((it, ii) => (
                   <div key={ii} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "6px 0", borderBottom: ii < groep.items.length - 1 ? "1px solid rgba(118,118,128,0.24)" : "none",
+                    display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px",
+                    padding: "7px 0", borderBottom: ii < groep.items.length - 1 ? "0.5px solid rgba(84,84,88,0.65)" : "none",
                   }}>
-                    <span style={{ fontSize: "14px", color: "rgba(235,235,245,0.8)", fontWeight: 600 }}>
+                    <span style={{ fontSize: "15px", color: "rgba(235,235,245,0.86)" }}>
                       {it.naam}
-                      {it.propPct && <span style={{ fontSize: "11px", color: "#FFD60A", marginLeft: "5px" }}>({it.propPct})</span>}
+                      {it.propPct && <span style={{ fontSize: "12px", color: "#FFD60A", marginLeft: "5px" }}>({it.propPct})</span>}
+                      {it.minClamp && <span style={{ fontSize: "12px", color: "#FF9F0A", marginLeft: "5px" }}>⚠ minimum</span>}
                     </span>
-                    <span style={{ textAlign: "right" }}>
-                      <span style={{ fontFamily: "inherit", fontWeight: 700, fontSize: "15px", color: groep.fase === "Nood" ? "#FF453A" : ACCENT }}>
-                        {it.dosisStr}
-                      </span>
-                      <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.6)", marginLeft: "3px" }}>{it.unit}</span>
+                    <span style={{ textAlign: "right", flexShrink: 0 }}>
+                      <span style={{ fontWeight: 600, fontSize: "17px", color: groep.fase === "Nood" ? "#FF453A" : ACCENT }}>{it.dosisStr}</span>
+                      <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginLeft: "3px" }}>{it.unit}</span>
                       {it.propMlStr && (
-                        <span style={{ fontSize: "12px", color: "#FFD60A", fontFamily: "inherit", fontWeight: 700, marginLeft: "6px" }}>
+                        <span style={{ fontSize: "13px", color: "#FFD60A", fontWeight: 600, marginLeft: "6px" }}>
                           · {it.propMlStr} ml{it.propLabel && it.propLabel.includes("onderhoud") ? "/uur" : ""}
                         </span>
                       )}
@@ -5544,125 +5471,58 @@ function ZakkaartApp() {
 
         {/* ETT / Tube info */}
         {(hasAge || isPrematuur) && (
-          <Collapse title={isPrematuur ? "Tube, sonde, blad & katheter (prematuur)" : "Tube, sonde, blad & katheter (op leeftijd)"} color="#FFD60A" icon={Icons.tube}>
+          <Collapse title={isPrematuur ? "Tube, sonde, blad & katheter (prematuur)" : "Tube, sonde, blad & katheter (op leeftijd)"} color="#FF9F0A" icon={Icons.tube}>
             {isPrematuur && (
-              <div style={{ fontSize: "13px", color: "#FFD60A", marginBottom: "10px", fontWeight: 700 }}>
+              <div style={{ fontSize: "13px", color: "#FFD60A", marginBottom: "6px", fontWeight: 600 }}>
                 Prematuur / neonaat {WEIGHT_ITEMS[calcGewichtIdx]?.label} — uncuffed, maten op gewicht
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-              {[
-                { label: "ETT maat", waarde: tubeMaat, eenheid: "" },
-                { label: "ETT diepte", waarde: tubeDiepte, eenheid: "cm" },
-                { label: "Laryngoscoopblad", waarde: tubeBlad, eenheid: "" },
-                { label: "Maagsonde", waarde: tubeSonde, eenheid: "Fr" },
-                { label: "Blaaskatheter", waarde: tubeKath, eenheid: "Ch" },
-              ].filter(item => item.waarde != null).map((item, i) => (
-                <div key={i} style={{
-                  background: "rgba(255,214,10,0.08)",
-                  borderRadius: "10px",
-                  padding: "12px 8px",
-                  textAlign: "center",
-                  border: "1px solid rgba(255,214,10,0.15)",
-                }}>
-                  <div style={{
-                    fontSize: isNaN(parseFloat(item.waarde)) ? "15px" : "22px",
-                    fontWeight: 900,
-                    fontFamily: "inherit",
-                    color: "#FFD60A",
-                  }}>{item.waarde}{item.eenheid && <span style={{ fontSize: "13px", color: "rgba(235,235,245,0.6)" }}> {item.eenheid}</span>}</div>
-                  <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px", color: "rgba(235,235,245,0.6)", marginTop: "4px" }}>{item.label}</div>
-                </div>
-              ))}
-            </div>
+            {[
+              { label: "ETT maat", waarde: tubeMaat, eenheid: "" },
+              { label: "ETT diepte", waarde: tubeDiepte, eenheid: "cm" },
+              { label: "Laryngoscoopblad", waarde: tubeBlad, eenheid: "" },
+              { label: "Maagsonde", waarde: tubeSonde, eenheid: "Fr" },
+              { label: "Blaaskatheter", waarde: tubeKath, eenheid: "Ch" },
+            ].filter(item => item.waarde != null).map((item, i) => (
+              <ValueRow key={i} label={item.label} value={item.waarde} unit={item.eenheid} />
+            ))}
           </Collapse>
         )}
 
         {/* Beademingskapje & LMA maten */}
         {hasAge && (
           <Collapse title="Beademingskapje & LMA" color="#BF5AF2" icon={Icons.wind}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              {[
-                { label: "Beademingskapje", maat: masker.maat, sub: masker.label, kleur: masker.kleur, extra: null },
-                { label: "LMA", maat: lma.maat, sub: lma.label, kleur: lma.kleur, extra: `Manchet max ${lma.maxVol}` },
-              ].map((item, i) => (
-                  <div key={i} style={{
-                    background: `${item.kleur}12`,
-                    borderRadius: "10px",
-                    padding: "14px 12px",
-                    textAlign: "center",
-                    border: `1px solid ${item.kleur}25`,
-                  }}>
-                    <div style={{
-                      fontSize: "11px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.3px",
-                      color: "rgba(235,235,245,0.6)",
-                      marginBottom: "6px",
-                    }}>{item.label}</div>
-                    <div style={{
-                      fontSize: "26px",
-                      fontWeight: 900,
-                      fontFamily: "inherit",
-                      color: item.kleur,
-                    }}>maat {item.maat}</div>
-                    <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.45)", marginTop: "4px" }}>{item.sub}</div>
-                    {item.extra && <div style={{ fontSize: "11px", color: item.kleur, marginTop: "4px", fontWeight: 600 }}>{item.extra}</div>}
-                  </div>
-              ))}
-            </div>
+            <ValueRow label="Beademingskapje" sub={masker.label} value={`maat ${masker.maat}`} />
+            <ValueRow label="LMA" sub={`${lma.label} · manchet max ${lma.maxVol}`} value={`maat ${lma.maat}`} />
             {/* Reference tabel masker */}
-            <div style={{ marginTop: "14px" }}>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px", color: "rgba(235,235,245,0.45)", marginBottom: "6px" }}>Beademingskapje — alle maten</div>
+            <div style={{ marginTop: "16px" }}>
+              <div className="zk-cap">Beademingskapje — alle maten</div>
               {MASKER_MATEN.map((m, i) => {
-                const isActive = age >= m.leeftijdMin && age < m.leeftijdMax;
-                const isLast = i === MASKER_MATEN.length - 1 && age >= m.leeftijdMin;
-                const highlight = isActive || isLast;
+                const highlight = m === masker;
                 return (
-                  <div key={i} style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "5px 8px",
-                    borderRadius: "6px",
-                    background: highlight ? `${m.kleur}15` : "transparent",
-                    border: highlight ? `1px solid ${m.kleur}30` : "1px solid transparent",
-                    marginBottom: "2px",
-                    fontSize: "13px",
-                  }}>
-                    <span style={{ color: highlight ? "#fff" : "rgba(235,235,245,0.45)" }}>{m.label}</span>
-                    <span style={{ fontFamily: "inherit", fontWeight: highlight ? 700 : 400, color: highlight ? m.kleur : "rgba(235,235,245,0.45)" }}>maat {m.maat}</span>
+                  <div key={i} className={"zk-ref-row" + (highlight ? " is-on" : "")}>
+                    <span>{m.label}</span>
+                    <span style={{ fontWeight: highlight ? 600 : 400 }}>maat {m.maat}</span>
                   </div>
                 );
               })}
             </div>
             {/* Reference tabel LMA */}
-            <div style={{ marginTop: "12px" }}>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px", color: "rgba(235,235,245,0.45)", marginBottom: "6px" }}>LMA — alle maten</div>
+            <div style={{ marginTop: "14px" }}>
+              <div className="zk-cap">LMA — alle maten</div>
               {LMA_MATEN.map((m, i) => {
-                const isActive = age >= m.leeftijdMin && age < m.leeftijdMax;
-                const isLast = i === LMA_MATEN.length - 1 && age >= m.leeftijdMin;
-                const highlight = isActive || isLast;
+                const highlight = m === lma;
                 return (
-                  <div key={i} style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "5px 8px",
-                    borderRadius: "6px",
-                    background: highlight ? `${m.kleur}15` : "transparent",
-                    border: highlight ? `1px solid ${m.kleur}30` : "1px solid transparent",
-                    marginBottom: "2px",
-                    fontSize: "13px",
-                  }}>
-                    <span style={{ color: highlight ? "#fff" : "rgba(235,235,245,0.45)" }}>{m.label}</span>
-                    <span style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                      <span style={{ fontFamily: "inherit", fontWeight: highlight ? 700 : 400, color: highlight ? m.kleur : "rgba(235,235,245,0.45)" }}>maat {m.maat}</span>
-                      <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.45)" }}>{m.maxVol}</span>
+                  <div key={i} className={"zk-ref-row" + (highlight ? " is-on" : "")}>
+                    <span>{m.label}</span>
+                    <span style={{ display: "flex", gap: "8px", alignItems: "baseline" }}>
+                      <span style={{ fontWeight: highlight ? 600 : 400 }}>maat {m.maat}</span>
+                      <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)" }}>{m.maxVol}</span>
                     </span>
                   </div>
                 );
               })}
-              <div style={{ fontSize: "11px", color: "rgba(235,235,245,0.45)", marginTop: "6px" }}>* Bij volwassenen: maat 4 (50–70 kg), maat 5 (70–100 kg), maat 6 (&gt;100 kg)</div>
+              <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginTop: "8px" }}>* Bij volwassenen: maat 4 (50–70 kg), maat 5 (70–100 kg), maat 6 (&gt;100 kg)</div>
             </div>
           </Collapse>
         )}
@@ -5675,7 +5535,7 @@ function ZakkaartApp() {
           let breakdown;
           if (w <= 10) {
             mlPerUur = 4 * w;
-            breakdown = `4 × ${w} kg`;
+            breakdown = `4 × ${kg(w)} kg`;
           } else if (w <= 20) {
             mlPerUur = 40 + 2 * (w - 10);
             breakdown = `40 + 2 × ${(w - 10).toFixed(w % 1 ? 1 : 0)} kg`;
@@ -5686,51 +5546,11 @@ function ZakkaartApp() {
           const mlPerUurStr = mlPerUur < 10 ? mlPerUur.toFixed(1) : mlPerUur.toFixed(0);
           return (
             <Collapse title="Vochtbeleid" color="#0A84FF" icon={Icons.droplet}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
-                {[
-                  { label: "Onderhoud 1e ½ uur", waarde: `${(w * 10).toFixed(0)} ml`, sub: "10 ml/kg" },
-                  { label: "Vochtbolus", waarde: `${(w * 10).toFixed(0)}–${(w * 20).toFixed(0)} ml`, sub: "10–20 ml/kg" },
-                ].map((item, i) => (
-                  <div key={i} style={{
-                    background: "rgba(10,132,255,0.08)",
-                    borderRadius: "10px",
-                    padding: "12px",
-                    border: "1px solid rgba(10,132,255,0.15)",
-                  }}>
-                    <div style={{
-                      fontSize: "18px",
-                      fontWeight: 700,
-                      fontFamily: "inherit",
-                      color: "#0A84FF",
-                    }}>{item.waarde}</div>
-                    <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px", color: "rgba(235,235,245,0.6)", marginTop: "4px" }}>{item.label}</div>
-                    <div style={{ fontSize: "11px", color: "rgba(235,235,245,0.45)", marginTop: "2px" }}>{item.sub}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* 4-2-1 regel onderhoudsvocht */}
-              <div style={{
-                background: "rgba(10,132,255,0.10)",
-                borderRadius: "10px",
-                padding: "12px",
-                border: "1px solid rgba(10,132,255,0.20)",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
-                  <div style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.3px", color: "#0A84FF", fontWeight: 700 }}>
-                    4-2-1 onderhoud
-                  </div>
-                  <div>
-                    <span style={{ fontSize: "22px", fontWeight: 700, fontFamily: "inherit", color: "#0A84FF" }}>{mlPerUurStr}</span>
-                    <span style={{ fontSize: "13px", color: "rgba(235,235,245,0.6)", marginLeft: "4px" }}>ml/uur</span>
-                  </div>
-                </div>
-                <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", fontFamily: "inherit" }}>
-                  = {breakdown}
-                </div>
-                <div style={{ fontSize: "11px", color: "rgba(235,235,245,0.45)", marginTop: "8px", lineHeight: 1.5 }}>
-                  4 ml/kg/u (0–10 kg) · +2 ml/kg/u (10–20 kg) · +1 ml/kg/u (&gt;20 kg)
-                </div>
+              <ValueRow label="Onderhoud 1e ½ uur" sub="10 ml/kg" value={(w * 10).toFixed(0)} unit="ml" />
+              <ValueRow label="Vochtbolus" sub="10–20 ml/kg" value={`${(w * 10).toFixed(0)}–${(w * 20).toFixed(0)}`} unit="ml" />
+              <ValueRow label="4-2-1 onderhoud" sub={`= ${breakdown}`} value={mlPerUurStr} unit="ml/uur" />
+              <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginTop: "10px", lineHeight: 1.5 }}>
+                4 ml/kg/u (0–10 kg) · +2 ml/kg/u (10–20 kg) · +1 ml/kg/u (&gt;20 kg)
               </div>
             </Collapse>
           );
@@ -5740,96 +5560,76 @@ function ZakkaartApp() {
         {calcWeight ? (
           Object.entries(categorieGroepen).map(([cat, meds]) => (
             <Card key={cat}>
-              <SectionTitle color={cat === "Noodmedicatie" ? "#FF453A" : "#30D158"}>{cat}</SectionTitle>
+              <SectionTitle color={cat === "Noodmedicatie" ? "#FF453A" : "#fff"}>{cat}</SectionTitle>
               {meds.map((m, i) => {
-                const { dosisStr, medKleur, propPct, propLabel, propMlStr, pompMlUurStr } = computeMedDosis(m, calcWeight, age, hasAge);
+                const { dosisStr, altStr, minClamp, perKgStr, medKleur, propPct, propLabel, propMlStr, pompMlUurStr } = computeMedDosis(m, calcWeight, age, hasAge);
+                const bronOpen = m.bron && openBronMed === m.med;
                 return (
-                  <div key={i} style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0 10px 8px",
-                    borderBottom: i < meds.length - 1 ? "1px solid rgba(118,118,128,0.24)" : "none",
+                  <div key={i} data-med={m.med} data-dose={dosisStr} data-unit={m.unit} style={{
+                    padding: "10px 0 10px 10px",
+                    borderBottom: i < meds.length - 1 ? "0.5px solid rgba(84,84,88,0.65)" : "none",
                     borderLeft: medKleur ? `4px solid ${medKleur.bg}` : "4px solid transparent",
-                    gap: "8px",
                   }}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: "#fff", fontSize: "15px" }}>
-                        {m.med}
-                        {m.bron && (
-                          <span
-                            onClick={() => setOpenBronMed(openBronMed === m.med ? null : m.med)}
-                            style={{
-                              display: "inline-flex", alignItems: "center", justifyContent: "center",
-                              width: "16px", height: "16px", marginLeft: "6px",
-                              borderRadius: "50%", border: "1px solid #666", color: "rgba(235,235,245,0.6)",
-                              fontSize: "11px", fontStyle: "italic", fontWeight: 700,
-                              cursor: "pointer", verticalAlign: "middle",
-                            }}
-                          >i</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: "#fff", fontSize: "16px", lineHeight: 1.25 }}>
+                          {m.med}
+                          {propPct && (
+                            <span style={{
+                              marginLeft: "6px", fontSize: "12px", fontWeight: 600, padding: "1px 6px", borderRadius: "6px",
+                              background: "rgba(255,214,10,0.2)", color: "#FFD60A",
+                            }}>{propPct}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "13px", color: "rgba(235,235,245,0.6)", marginTop: "2px" }}>
+                          {m.range}
+                          {propPct && <span> · {propLabel}</span>}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0, maxWidth: "46%" }}>
+                        <span style={{ fontWeight: 600, fontSize: "20px", color: cat === "Noodmedicatie" ? "#FF453A" : "#30D158" }}>{dosisStr}</span>
+                        <span style={{ fontSize: "13px", color: "rgba(235,235,245,0.6)", marginLeft: "3px" }}>{m.unit}</span>
+                        {altStr && (
+                          <div style={{ fontSize: "13px", color: "rgba(235,235,245,0.8)", marginTop: "1px" }}>= {altStr}</div>
                         )}
-                        {propPct && (
-                          <span style={{
-                            marginLeft: "6px",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: "6px",
-                            background: age < 3 ? "rgba(255,214,10,0.18)" : "rgba(255,214,10,0.32)",
-                            color: "#FFD60A",
-                            letterSpacing: "0.5px",
-                          }}>{propPct}</span>
+                        {propMlStr && (
+                          <div style={{ fontSize: "13px", color: "#FFD60A", fontWeight: 600, marginTop: "2px" }}>
+                            {propMlStr} <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", fontWeight: 400 }}>ml{m.perUur ? "/uur" : ""}</span>
+                          </div>
+                        )}
+                        {pompMlUurStr && (
+                          <div style={{ fontSize: "13px", color: "#FFD60A", fontWeight: 600, marginTop: "2px" }}>
+                            {pompMlUurStr} <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", fontWeight: 400 }}>ml/uur (bij {m.pompConc} {m.unit.split("/")[0]}/ml)</span>
+                          </div>
                         )}
                       </div>
-                      <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.45)", marginTop: "2px" }}>
-                        {m.range}
-                        {propPct && (
-                          <span style={{ color: "rgba(235,235,245,0.6)", marginLeft: "4px" }}>· {propLabel}</span>
-                        )}
+                    </div>
+                    {minClamp && (
+                      <div className="zk-warn" data-atropine-waarschuwing>
+                        Het minimum van 0,1 mg is toegepast. Dat is {perKgStr} mg/kg bij dit gewicht; de rekenregel is 0,02 mg/kg.
+                        Onder 5 kg is dit minimum omstreden. Overleg met de anesthesioloog.
                       </div>
-                      {m.bron && openBronMed === m.med && (
-                        <div style={{
-                          fontSize: "12px", color: "rgba(235,235,245,0.6)", marginTop: "6px", padding: "6px 8px",
-                          background: "rgba(118,118,128,0.18)", borderRadius: "6px", maxWidth: "260px",
-                        }}>
-                          <span style={{ marginRight: "4px" }}>{m.bron.status}</span>
-                          {m.bron.tekst}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{
-                      background: cat === "Noodmedicatie" ? "rgba(255,69,58,0.12)" : "rgba(48,209,88,0.1)",
-                      borderRadius: "8px",
-                      padding: "6px 10px",
-                      textAlign: "right",
-                      flexShrink: 0,
-                      border: `1px solid ${cat === "Noodmedicatie" ? "rgba(255,69,58,0.2)" : "rgba(48,209,88,0.2)"}`,
-                    }}>
-                      <span style={{
-                        fontFamily: "inherit",
-                        fontWeight: 700,
-                        fontSize: "17px",
-                        color: cat === "Noodmedicatie" ? "#FF453A" : "#30D158",
-                      }}>{dosisStr}</span>
-                      <span style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginLeft: "3px" }}>{m.unit}</span>
-                      {propMlStr && (
-                        <div style={{ fontSize: "12px", color: "#FFD60A", fontFamily: "inherit", fontWeight: 700, marginTop: "2px" }}>
-                          {propMlStr} <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.6)", fontWeight: 400 }}>ml{m.perUur ? "/uur" : ""}</span>
-                        </div>
-                      )}
-                      {pompMlUurStr && (
-                        <div style={{ fontSize: "12px", color: "#FFD60A", fontFamily: "inherit", fontWeight: 700, marginTop: "2px" }}>
-                          {pompMlUurStr} <span style={{ fontSize: "11px", color: "rgba(235,235,245,0.6)", fontWeight: 400 }}>ml/uur (bij {m.pompConc} {m.unit.split("/")[0]}/ml)</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
+                    {m.bron && (
+                      <button type="button" className="zk-bron-btn" aria-expanded={bronOpen} onClick={() => setOpenBronMed(bronOpen ? null : m.med)}>
+                        {m.bron.status} Bron {bronOpen ? "verbergen" : "tonen"}
+                      </button>
+                    )}
+                    {bronOpen && (
+                      <div style={{
+                        fontSize: "13px", color: "rgba(235,235,245,0.8)", marginTop: "6px", padding: "8px 10px", lineHeight: 1.4,
+                        background: "rgba(118,118,128,0.24)", borderRadius: "8px",
+                      }}>
+                        {m.bron.tekst}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </Card>
           ))
         ) : (
-          <div style={{ textAlign: "center", padding: "16px", color: "rgba(235,235,245,0.45)", fontSize: "14px" }}>
+          <div className="zk-empty">
             {t("Selecteer leeftijd om doseringen te berekenen", "Select age to calculate doses")}
           </div>
         )}
@@ -6017,29 +5817,17 @@ function ZakkaartApp() {
     return (
       <div>
         {/* Zoekbalk */}
-        <div style={{ marginBottom: "12px", position: "relative" }}>
+        <div className="zk-search" style={{ marginTop: 0, marginBottom: "12px" }}>
+          {Icons.search}
           <input
-            type="text"
-            placeholder="Zoek afdeling of bouwdeel (bijv. CCU, apotheek)…"
+            type="search"
+            placeholder="Zoek afdeling of bouwdeel"
+            aria-label="Zoek afdeling of bouwdeel"
             value={plattegrondZoek}
             onChange={e => setPlattegrondZoek(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 36px 10px 14px",
-              borderRadius: "10px",
-              border: "0.5px solid rgba(84,84,88,0.65)",
-              background: "rgba(118,118,128,0.24)",
-              color: "#fff",
-              fontSize: "15px",
-              fontFamily: "inherit",
-              outline: "none",
-            }}
           />
           {plattegrondZoek && (
-            <button onClick={() => setPlattegrondZoek("")} style={{
-              position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)",
-              background: "none", border: "none", color: "rgba(235,235,245,0.6)", cursor: "pointer", fontSize: "17px",
-            }}>✕</button>
+            <button type="button" className="zk-search-clear" aria-label="Zoekveld leegmaken" onClick={() => setPlattegrondZoek("")}><span>✕</span></button>
           )}
         </div>
         {/* Zoekresultaten */}
@@ -6068,33 +5856,9 @@ function ZakkaartApp() {
           </div>
         )}
         {/* Tab switcher */}
-        <div style={{
-          display: "flex",
-          gap: "6px",
-          marginBottom: "14px",
-        }}>
+        <div className="zk-seg" role="group" aria-label="Locatie plattegrond" style={{ marginBottom: "14px" }}>
           {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setPlattegrondTab(tab.id)}
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "10px",
-                border: plattegrondTab === tab.id
-                  ? "1.5px solid #40C8E0"
-                  : "1px solid rgba(118,118,128,0.32)",
-                background: plattegrondTab === tab.id
-                  ? "rgba(64,200,224,0.15)"
-                  : "rgba(118,118,128,0.18)",
-                color: plattegrondTab === tab.id ? "#fff" : "rgba(235,235,245,0.6)",
-                fontWeight: plattegrondTab === tab.id ? 700 : 500,
-                fontSize: "15px",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "all 0.15s",
-              }}
-            >{tab.label}</button>
+            <button key={tab.id} type="button" className={plattegrondTab === tab.id ? "is-on" : ""} aria-pressed={plattegrondTab === tab.id} onClick={() => setPlattegrondTab(tab.id)}>{tab.label}</button>
           ))}
         </div>
 
@@ -6245,7 +6009,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Voorkeur vs Verlof */}
-      <Collapse title="⚠ Voorkeur vs Verlof" color="#FF453A" defaultOpen={true} icon={Icons.calendar}>
+      <Collapse title="Voorkeur vs Verlof" color="#FF453A" defaultOpen={true} icon={Icons.calendar}>
         <div style={{ fontSize: "13px", color: "#FF453A", fontStyle: "italic", marginBottom: "10px" }}>
           Cruciaal onderscheid — wil je zéker vrij zijn, vraag dan altijd VERLOF aan, geen voorkeur.
         </div>
@@ -6285,7 +6049,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Vakantie-deadlines */}
-      <Collapse title="🏖 Vakantie-aanvraag deadlines" color="#FF9F0A" defaultOpen={true} icon={Icons.calendar}>
+      <Collapse title="Vakantie-aanvraag deadlines" color="#FF9F0A" defaultOpen={true} icon={Icons.calendar}>
         <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Indienen vóór de deadline — anders niet gegarandeerd.
         </div>
@@ -6296,7 +6060,7 @@ function ZakkaartApp() {
         ].map((v, i) => (
           <div key={i} style={{
             display: "grid",
-            gridTemplateColumns: "1fr auto",
+            gridTemplateColumns: "minmax(0, 1fr) auto",
             gap: "10px",
             alignItems: "center",
             padding: "10px 12px",
@@ -6319,7 +6083,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Zelfroosteren */}
-      <Collapse title="🆕 Zelfroosteren (vanaf augustus 2026)" color="#63E6E2" icon={Icons.calendar}>
+      <Collapse title="Zelfroosteren (vanaf augustus 2026)" color="#63E6E2" icon={Icons.calendar}>
         <div style={{
           background: "rgba(99,230,226,0.08)",
           border: "1px solid rgba(99,230,226,0.3)",
@@ -6343,7 +6107,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Jokers */}
-      <Collapse title="🃏 Jokers — extra zwaarwegende wensen" color="#FF375F" icon={Icons.calendar}>
+      <Collapse title="Jokers — extra zwaarwegende wensen" color="#FF375F" icon={Icons.calendar}>
         <div style={{
           background: "linear-gradient(135deg, rgba(233,30,99,0.12) 0%, rgba(233,30,99,0.03) 100%)",
           border: "1px solid rgba(233,30,99,0.3)",
@@ -6372,7 +6136,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* ATW */}
-      <Collapse title="⚖ ATW — arbeidstijdenwet regels" color="#FFD60A" icon={Icons.book}>
+      <Collapse title="ATW — arbeidstijdenwet regels" color="#FFD60A" icon={Icons.book}>
         <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Vertaling naar AUMC roostercodes. Het ziekenhuis kan boetes krijgen bij schending.
         </div>
@@ -6425,7 +6189,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Onderling ruilen */}
-      <Collapse title="🔄 Onderling ruilen via OWS" color="#0A84FF" icon={Icons.calendar}>
+      <Collapse title="Onderling ruilen via OWS" color="#0A84FF" icon={Icons.calendar}>
         <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "14px", color: "rgba(235,235,245,0.8)", lineHeight: 1.7 }}>
           <li>Ruilen kan zelf via OWS — niet meer via roosteraars (behalve 3-hoeksruil)</li>
           <li>Collega moet voldoen aan <strong style={{ color: "#fff" }}>functieprofiel, kwalificaties, ATW & cao</strong></li>
@@ -6452,7 +6216,7 @@ function ZakkaartApp() {
           <div style={{ overflowX: "auto" }}>
             <div style={{
               display: "grid",
-              gridTemplateColumns: "1.6fr 0.7fr 0.7fr",
+              gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 0.7fr)",
               gap: "4px",
               padding: "8px 0",
               borderBottom: "0.5px solid rgba(84,84,88,0.65)",
@@ -6469,7 +6233,7 @@ function ZakkaartApp() {
             {groep.codes.map((c, i) => (
               <div key={i} style={{
                 display: "grid",
-                gridTemplateColumns: "1.6fr 0.7fr 0.7fr",
+                gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 0.7fr)",
                 gap: "4px",
                 padding: "8px 4px",
                 borderBottom: i < groep.codes.length - 1 ? "1px solid rgba(118,118,128,0.18)" : "none",
@@ -6499,7 +6263,7 @@ function ZakkaartApp() {
         <div style={{ overflowX: "auto" }}>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "1.6fr 0.7fr 0.7fr",
+            gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 0.7fr)",
             gap: "4px",
             padding: "8px 0",
             borderBottom: "0.5px solid rgba(84,84,88,0.65)",
@@ -6516,7 +6280,7 @@ function ZakkaartApp() {
           {ROOSTER_STUDENT.map((c, i) => (
             <div key={i} style={{
               display: "grid",
-              gridTemplateColumns: "1.6fr 0.7fr 0.7fr",
+              gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 0.7fr) minmax(0, 0.7fr)",
               gap: "4px",
               padding: "8px 4px",
               borderBottom: i < ROOSTER_STUDENT.length - 1 ? "1px solid rgba(118,118,128,0.18)" : "none",
@@ -6546,7 +6310,7 @@ function ZakkaartApp() {
         {DIENST_TOESLAGEN.map((t, i) => (
           <div key={i} style={{
             display: "grid",
-            gridTemplateColumns: "70px 1fr",
+            gridTemplateColumns: "70px minmax(0, 1fr)",
             gap: "10px",
             padding: "8px 0",
             borderBottom: i < DIENST_TOESLAGEN.length - 1 ? "1px solid rgba(118,118,128,0.18)" : "none",
@@ -6568,7 +6332,7 @@ function ZakkaartApp() {
       </Collapse>
 
       {/* Balansverlof */}
-      <Collapse title="💰 Balansverlof" color="#40C8E0" icon={Icons.calc}>
+      <Collapse title="Balansverlof" color="#40C8E0" icon={Icons.calc}>
         <div style={{ fontSize: "12px", color: "rgba(235,235,245,0.6)", marginBottom: "12px", lineHeight: 1.5, fontStyle: "italic" }}>
           Verlofuren sparen zonder vervaltermijn — voor je werk-privé balans.
         </div>
@@ -6594,7 +6358,7 @@ function ZakkaartApp() {
           </div>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1.2fr",
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)",
             gap: "6px",
             fontSize: "13px",
             color: "rgba(235,235,245,0.8)",
@@ -7174,9 +6938,9 @@ function ZakkaartApp() {
     return (
       <div>
         {/* Tab-knoppen */}
-        <div style={{ display: "flex", gap: "6px", marginBottom: "14px", padding: "0 2px" }}>
-          <button style={tabStyle("patronen")} onClick={() => setEcgTab("patronen")}>📊 Patronen</button>
-          <button style={tabStyle("stappenplan")} onClick={() => setEcgTab("stappenplan")}>📋 7+2 Stappenplan</button>
+        <div className="zk-seg" role="group" aria-label="Weergave ECG" style={{ marginBottom: "14px" }}>
+          <button type="button" className={ecgTab === "patronen" ? "is-on" : ""} aria-pressed={ecgTab === "patronen"} onClick={() => setEcgTab("patronen")}>Patronen</button>
+          <button type="button" className={ecgTab === "stappenplan" ? "is-on" : ""} aria-pressed={ecgTab === "stappenplan"} onClick={() => setEcgTab("stappenplan")}>7+2 Stappenplan</button>
         </div>
 
         {ecgTab === "patronen" && ECG_PATRONEN_SECTIONS.map((sectie, i) => (
@@ -7453,7 +7217,7 @@ function ZakkaartApp() {
           ))}
         </Collapse>
 
-        <Collapse title="⚠ Spoed — verwijzing" color="#FF453A" icon={Icons.alert}>
+        <Collapse title="Spoed — verwijzing" color="#FF453A" icon={Icons.alert}>
           <div style={{ fontSize: "14px", color: "rgba(235,235,245,0.8)", lineHeight: 1.6, marginBottom: "12px" }}>
             Bij een acute situatie: volg de <strong style={{ color: "#FF453A" }}>fysieke spoedbundel cardiochirurgie</strong> op de OK (of via QR-code). Deze app vervangt de bundel niet — bij calamiteit altijd de bundel + zorgteam erbij.
           </div>
@@ -7593,7 +7357,7 @@ function ZakkaartApp() {
 
   const searchIndexRef = useRef(null);
   const searchFuseRef = useRef(null);
-  const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f\u200B]/g, "").toLowerCase();
   const searchResults = useMemo(() => {
     if (!searchQuery || searchQuery.length < 2) return null;
     if (!searchIndexRef.current) {
