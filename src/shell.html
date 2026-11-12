@@ -179,7 +179,7 @@
       <img src="{{GATE_ICON}}" alt="" />
       <div class="gate-title">{{GATE_SUB}}</div>
       <div class="gate-sub">Voer het wachtwoord in</div>
-      <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Wachtwoord" aria-label="Wachtwoord" />
+      <input id="auth-pass" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Wachtwoord" aria-label="Wachtwoord" />
       <div id="auth-error" role="alert">&nbsp;</div>
       <button type="submit">Openen</button>
     </form>
@@ -208,12 +208,13 @@
 
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var h = await sha256(input.value);
+        // spaties voor of achter het wachtwoord negeren (toetsenborden voegen die soms toe)
+        var h = await sha256(input.value.trim());
         if (h === PASS_HASH) {
           try { localStorage.setItem(GATE_KEY, '1'); } catch (e2) {}
           unlock();
         } else {
-          err.textContent = 'Onjuist wachtwoord';
+          err.textContent = 'Onjuist wachtwoord. Let op hoofdletters en leestekens.';
           input.value = '';
           input.focus();
         }

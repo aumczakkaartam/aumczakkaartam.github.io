@@ -3,7 +3,7 @@
 //  - Pagina's (html): eerst het netwerk, zodat een nieuwe versie direct binnenkomt;
 //    reageert het netwerk niet binnen 3 seconden, of is er geen verbinding, dan de bewaarde kopie.
 //  - Overige bestanden (iconen, manifest): eerst de bewaarde kopie, op de achtergrond verversen.
-const CACHE = "zakkaart-28d3d6d09ffa";
+const CACHE = "zakkaart-bb6c9c8fa734";
 const ASSETS = ["./","./index.html","./manifest.webmanifest","./icons/icon-full-512.png","./icons/icon-full-192.png","./apple-touch-icon.png","./info.html","./manifest-info.webmanifest","./icons/icon-info-512.png","./icons/icon-info-192.png","./apple-touch-icon-info.png","./calculator.html","./manifest-calc.webmanifest","./icons/icon-calc-512.png","./icons/icon-calc-192.png","./apple-touch-icon-calculator.png"];
 const NETWORK_TIMEOUT_MS = 3000;
 
