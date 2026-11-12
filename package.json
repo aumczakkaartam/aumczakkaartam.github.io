@@ -1,0 +1,14 @@
+{
+  "name": "zakkaart",
+  "private": true,
+  "description": "Zakkaart Anesthesiemedewerkers — drie apps uit één bron",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-react": "^7.26.3",
+    "terser": "^5.37.0"
+  }
+}
