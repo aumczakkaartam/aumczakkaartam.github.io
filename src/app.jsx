@@ -29,6 +29,105 @@ const ZOEK_SYNONIEMEN = {
 
 
 // ============================================================
+// ZOEKEN — rangschikking (los van React, zodat het te testen is)
+// ============================================================
+// Volgorde van belang: telefoonnummers en personen eerst, dan tabbladen en
+// kaarttitels, dan gewone tekst. Hele woorden vóór woordbegin vóór een stuk
+// midden in een woord. Vage (fuzzy) treffers alleen als er bijna niets gevonden is.
+const zkNorm = s => (s || "").toString().normalize("NFD").replace(/[̀-ͯ​]/g, "").toLowerCase();
+const zkWords = s => zkNorm(s).split(/[^a-z0-9]+/).filter(Boolean);
+
+// Andere woorden voor hetzelfde: zoekopdracht (of los woord erin) → extra zoekopdrachten
+const ZOEK_ALIASSEN = {
+  picu: ["kinder ic", "ic kinderen"], kinderic: ["kinder ic", "ic kinderen"], "kinder icu": ["kinder ic"], kic: ["kinder ic"],
+  icu: ["ic"], "intensive care": ["ic"],
+  pacu: ["verkoever"], verkoever: ["pacu"], recovery: ["pacu", "verkoever"], uitslaapkamer: ["pacu", "verkoever"],
+  seh: ["spoedeisende hulp"], ehbo: ["seh", "spoedeisende hulp"],
+  "rotem live": ["gemweb"], gemweb: ["rotem live"],
+  anesthesist: ["anesthesioloog"], rontgen: ["radiologie"], lab: ["citolab", "laboratorium"],
+  ok: ["operatiekamer"], reanimatie: ["reanimatiesein", "reanimatieteam"],
+};
+
+const ZOEK_TYPE_GEWICHT = { phone: 0, person: 0, tab: 2, title: 3, text: 6 };
+
+function zkPrepareIndex(raw) {
+  return raw.map((e, i) => {
+    const type = e.type || "text";
+    const own = zkNorm(e.text) + (e.kw ? " " + zkNorm(e.kw) : "");
+    const ctx = zkNorm((e.collapse || "") + " " + (e.sectionLabel || ""));
+    const n = zkNorm(e.text).replace(/\s+/g, " ").trim();
+    return {
+      ...e, type, _order: i,
+      _n: n, _own: own, _w: zkWords(own), _cn: ctx, _cw: zkWords(ctx),
+      _sq: own.replace(/[^a-z0-9]+/g, ""),
+      _nameN: e.name ? zkNorm(e.name).replace(/\s+/g, " ").trim() : null,
+      _key: type === "phone" ? "p|" + n : e.section + "|" + n,
+    };
+  });
+}
+
+// 0 = heel woord, 1 = begin van een woord, 2 = ergens in een woord, null = geen treffer
+function zkMatchToken(words, full, t) {
+  let best = null;
+  for (const w of words) {
+    if (w === t) return 0;
+    if (w.startsWith(t)) best = best == null ? 1 : Math.min(best, 1);
+  }
+  if (best != null) return best;
+  if (t.length >= 4 && full.includes(t)) return 2;
+  return null;
+}
+
+function zkScore(e, tokens, q) {
+  let worst = 0, ctxHits = 0;
+  for (const t of tokens) {
+    let m = zkMatchToken(e._w, e._own, t);
+    if (m == null && tokens.length === 1 && t.length >= 5 && e._sq.includes(t)) m = 2;   // "kinderic" ↔ "Kinder IC"
+    if (m == null) {
+      const c = zkMatchToken(e._cw, e._cn, t);
+      if (c == null) return null;
+      m = c + 1; ctxHits++;
+    }
+    if (m > worst) worst = m;
+  }
+  if (ctxHits === tokens.length) return null;   // alleen de kaarttitel/tabnaam past: de titel zelf staat er al in
+  let score = worst * 10 + ZOEK_TYPE_GEWICHT[e.type] + ctxHits * 4 + Math.min(e._n.length / 30, 4);
+  if (e.section === "tel" || e.section === "nood") score -= 0.6;   // de samengestelde lijsten gaan vóór de lange interne lijst
+  const strong = e.type !== "text";
+  if (e._n === q || e._nameN === q) score -= strong ? 12 : 3;
+  else if (e._n.startsWith(q)) score -= 5;
+  else if (e._own.includes(q)) score -= 3;
+  return score;
+}
+
+function zkRank(index, query, sectionId) {
+  const qWords = zkWords(query);
+  if (!qWords.length) return [];
+  const joined = qWords.join(" ");
+  const queries = [{ q: joined, pen: 0 }];
+  const addAlt = alt => { const a = zkWords(alt).join(" "); if (a && !queries.some(x => x.q === a)) queries.push({ q: a, pen: 14 }); };
+  const padded = " " + joined + " ";
+  const tabellen = [ZOEK_ALIASSEN, ZOEK_SYNONIEMEN];
+  tabellen.forEach(tabel => Object.keys(tabel).forEach(key => {
+    const k = zkWords(key).join(" ");
+    if (!k || !padded.includes(" " + k + " ")) return;
+    tabel[key].forEach(a => addAlt(padded.replace(" " + k + " ", " " + a + " ")));
+  }));
+  const best = new Map();
+  for (const { q, pen } of queries) {
+    const tokens = q.split(" ");
+    for (const e of index) {
+      if (sectionId && e.section !== sectionId) continue;
+      const s = zkScore(e, tokens, q);
+      if (s == null) continue;
+      const prev = best.get(e._key);
+      if (!prev || s + pen < prev.score) best.set(e._key, { e, score: s + pen });
+    }
+  }
+  return [...best.values()].sort((a, b) => a.score - b.score || a.e._order - b.e._order).map(x => x.e);
+}
+
+// ============================================================
 // COLLAPSIBLE CARD COMPONENT (top-level for state persistence)
 // ============================================================
 
@@ -7269,7 +7368,7 @@ function ZakkaartApp() {
         let ct = collapse;
         if (node.type === Collapse && typeof p.title === "string") {
           ct = p.title;
-          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.title, loc });
+          idx.push({ section: sectionId, sectionLabel, collapse: ct, text: p.title, type: "title", loc });
         }
         // Leaf-componenten geven hun tekst via props door (niet via children),
         // dus die moeten hier expliciet herkend en geïndexeerd worden — anders
@@ -7278,7 +7377,7 @@ function ZakkaartApp() {
           const naam = typeof p.naam === "string" ? p.naam.trim() : "";
           const nummer = typeof p.nummer === "string" ? p.nummer.trim() : "";
           if (naam || nummer) {
-            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, nummer].filter(Boolean).join(" — "), loc });
+            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, nummer].filter(Boolean).join(" — "), type: "phone", name: naam, num: nummer, loc });
           }
         }
         if (node.type === PersonCard && p.p && typeof p.p === "object") {
@@ -7289,7 +7388,7 @@ function ZakkaartApp() {
             const kw = [person.tel, person.intern, person.email]
               .filter(v => typeof v === "string" && v.trim() && v !== "—")
               .join(" ");
-            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, rol].filter(Boolean).join(" — "), kw, loc });
+            idx.push({ section: sectionId, sectionLabel, collapse: ct, text: [naam, rol].filter(Boolean).join(" — "), kw, type: "person", loc });
           }
         }
         if (node.type === ImageCard && typeof p.beschrijving === "string" && p.beschrijving.trim()) {
@@ -7350,163 +7449,62 @@ function ZakkaartApp() {
     };
     SECTIONS.forEach(s => {
       if (s.id === "nood") return;
-      idx.push({ section: s.id, sectionLabel: "Tabblad", collapse: null, text: "Open tabblad: " + s.label, kw: [s.label].concat(SYNONIEMEN[s.id] || []).join(" ") });
+      idx.push({ section: s.id, sectionLabel: "Tabblad", collapse: null, text: "Open tabblad: " + s.label, kw: [s.label].concat(SYNONIEMEN[s.id] || []).join(" "), type: "tab" });
     });
     return idx;
   };
 
   const searchIndexRef = useRef(null);
   const searchFuseRef = useRef(null);
-  const deaccent = s => (s || "").toString().normalize("NFD").replace(/[\u0300-\u036f\u200B]/g, "").toLowerCase();
-  const searchResults = useMemo(() => {
-    if (!searchQuery || searchQuery.length < 2) return null;
+  const getSearchIndex = () => {
     if (!searchIndexRef.current) {
-      try { searchIndexRef.current = buildSearchIndex(); }
-      catch (e) { searchIndexRef.current = []; }
+      let raw = [];
+      try { raw = buildSearchIndex(); } catch (e) { raw = []; }
+      searchIndexRef.current = zkPrepareIndex(raw);
     }
-    if (!searchFuseRef.current && window.Fuse) {
-      searchFuseRef.current = new Fuse(searchIndexRef.current, {
-        keys: [
-          { name: "text", weight: 0.5 },
-          { name: "collapse", weight: 0.25 },
-          { name: "kw", weight: 0.15 },
-          { name: "sectionLabel", weight: 0.1 },
-        ],
-        includeScore: true,
-        ignoreLocation: true,
-        threshold: 0.38,
-        minMatchCharLength: 2,
-      });
-    }
-    const ql = deaccent(searchQuery);
-
-    // Zoektermen: origineel + medicatie/afkorting-synoniemen (bv. "esmeron" -> ook "rocuronium")
-    const terms = [searchQuery];
-    const padded = " " + ql + " ";
-    for (const key in ZOEK_SYNONIEMEN) {
-      if (padded.includes(" " + key + " ")) terms.push(...ZOEK_SYNONIEMEN[key]);
-    }
-
-    const seen = new Map(); // "section|collapse|text" -> { item, score }
-    if (searchFuseRef.current) {
-      for (const term of terms) {
-        for (const r of searchFuseRef.current.search(term)) {
-          const it = r.item;
-          const key = it.section + "|" + (it.collapse || "") + "|" + it.text;
-          const prev = seen.get(key);
-          if (!prev || r.score < prev.score) seen.set(key, { item: it, score: r.score });
-        }
+    return searchIndexRef.current;
+  };
+  // Eén zoekfunctie voor het startscherm (alle tabbladen) en voor de zoekbalk binnen een tabblad
+  const runSearch = (query, sectionId) => {
+    if (!query || query.trim().length < 2) return null;
+    const index = getSearchIndex();
+    let hits = zkRank(index, query, sectionId);
+    // Niets gevonden? Dan pas vage treffers (tikfouten), nooit gemengd met echte resultaten.
+    if (hits.length === 0 && zkNorm(query).trim().length >= 4 && window.Fuse) {
+      if (!searchFuseRef.current) {
+        searchFuseRef.current = new Fuse(index, {
+          keys: [{ name: "text", weight: 0.7 }, { name: "kw", weight: 0.3 }],
+          includeScore: true, ignoreLocation: true, threshold: 0.3, minMatchCharLength: 3,
+        });
       }
-    } else {
-      // Fallback zonder Fuse (bv. als fuse.min.js niet kon laden): letterlijke woord-match
-      const tokens = ql.split(/\s+/).filter(Boolean);
-      for (const item of searchIndexRef.current) {
-        const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
-        if (!tokens.every(t => hay.includes(t))) continue;
-        const key = item.section + "|" + (item.collapse || "") + "|" + item.text;
-        if (!seen.has(key)) seen.set(key, { item, score: 0 });
-      }
+      const seen = new Set(hits.map(e => e._key));
+      const fuzzy = searchFuseRef.current.search(query)
+        .map(r => r.item)
+        .filter(e => (!sectionId || e.section === sectionId) && !seen.has(e._key) && seen.add(e._key))
+        .sort((a, b) => ZOEK_TYPE_GEWICHT[a.type] - ZOEK_TYPE_GEWICHT[b.type]);
+      hits = fuzzy.slice(0, 8);
     }
-
-    // Prefix- en exacte-treffer-boost, zodat de beste match bovenaan staat
-    const arr = [...seen.values()];
-    arr.forEach(r => {
-      const words = deaccent((r.item.text || "") + " " + (r.item.collapse || "")).split(/[\s\-/]+/).filter(Boolean);
-      if (words.some(w => w.startsWith(ql))) r.score *= 0.3;
-      if (deaccent(r.item.text || "") === ql || deaccent(r.item.collapse || "") === ql) r.score *= 0.1;
-    });
-    arr.sort((a, b) => a.score - b.score);
-
-    const out = [];
-    for (const { item } of arr) {
-      const person = (item.section === "team")
-        ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam))
-        : null;
-      out.push({
-        section: item.section,
-        collapse: item.collapse || null,
-        text: item.text,
-        cat: item.sectionLabel + (item.collapse ? " · " + item.collapse : ""),
-        personData: person || undefined,
-        loc: item.loc || undefined,
-      });
-      if (out.length >= 60) break;
-    }
-    return out;
-  }, [searchQuery]);
+    return hits.slice(0, 30).map(item => ({
+      section: item.section,
+      collapse: item.collapse || null,
+      type: item.type,
+      text: item.type === "phone" ? item.name : item.type === "tab" ? item.text.replace(/^Open tabblad: /, "") : item.text,
+      num: item.type === "phone" ? item.num : null,
+      sub: item.type === "person" && item.kw ? item.kw.split(" ").filter(v => !v.includes("@")).join(" · ") : null,
+      cat: [sectionId ? null : item.sectionLabel, item.collapse, item.loc === "vumc" ? "VU" : item.loc === "amc" ? "AMC" : null]
+        .filter(Boolean).join(" · "),
+      personData: (item.section === "team" ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam)) : null) || undefined,
+      loc: item.loc || undefined,
+    }));
+  };
+  const searchResults = useMemo(() => runSearch(searchQuery, null), [searchQuery]);
 
   useEffect(() => { setTabSearchQuery(""); }, [activeSection]);
 
-  const tabSearchResults = useMemo(() => {
-    if (!activeSection || !tabSearchQuery || tabSearchQuery.length < 2) return null;
-    if (!searchIndexRef.current) {
-      try { searchIndexRef.current = buildSearchIndex(); }
-      catch (e) { searchIndexRef.current = []; }
-    }
-    if (!searchFuseRef.current && window.Fuse) {
-      searchFuseRef.current = new Fuse(searchIndexRef.current, {
-        keys: [
-          { name: "text", weight: 0.5 },
-          { name: "collapse", weight: 0.25 },
-          { name: "kw", weight: 0.15 },
-          { name: "sectionLabel", weight: 0.1 },
-        ],
-        includeScore: true,
-        ignoreLocation: true,
-        threshold: 0.38,
-        minMatchCharLength: 2,
-      });
-    }
-    const ql = deaccent(tabSearchQuery);
-    const terms = [tabSearchQuery];
-    const padded = " " + ql + " ";
-    for (const key in ZOEK_SYNONIEMEN) {
-      if (padded.includes(" " + key + " ")) terms.push(...ZOEK_SYNONIEMEN[key]);
-    }
-    const seen = new Map();
-    if (searchFuseRef.current) {
-      for (const term of terms) {
-        for (const r of searchFuseRef.current.search(term)) {
-          const it = r.item;
-          if (it.section !== activeSection) continue;
-          const key = (it.collapse || "") + "|" + it.text;
-          const prev = seen.get(key);
-          if (!prev || r.score < prev.score) seen.set(key, { item: it, score: r.score });
-        }
-      }
-    } else {
-      const tokens = ql.split(/\s+/).filter(Boolean);
-      for (const item of searchIndexRef.current) {
-        if (item.section !== activeSection) continue;
-        const hay = deaccent((item.text || "") + " " + (item.collapse || "") + " " + (item.sectionLabel || "") + " " + (item.kw || ""));
-        if (!tokens.every(t => hay.includes(t))) continue;
-        const key = (item.collapse || "") + "|" + item.text;
-        if (!seen.has(key)) seen.set(key, { item, score: 0 });
-      }
-    }
-    const arr = [...seen.values()];
-    arr.forEach(r => {
-      const words = deaccent((r.item.text || "") + " " + (r.item.collapse || "")).split(/[\s\-/]+/).filter(Boolean);
-      if (words.some(w => w.startsWith(ql))) r.score *= 0.3;
-      if (deaccent(r.item.text || "") === ql || deaccent(r.item.collapse || "") === ql) r.score *= 0.1;
-    });
-    arr.sort((a, b) => a.score - b.score);
-    const out = [];
-    for (const { item } of arr) {
-      const person = (item.section === "team")
-        ? LEIDINGGEVENDEN.find(pp => item.text.includes(pp.naam))
-        : null;
-      out.push({
-        collapse: item.collapse || null,
-        text: item.text,
-        cat: item.collapse || "",
-        personData: person || undefined,
-        loc: item.loc || undefined,
-      });
-      if (out.length >= 30) break;
-    }
-    return out;
-  }, [tabSearchQuery, activeSection]);
+  const tabSearchResults = useMemo(
+    () => (activeSection && activeSection !== SETTINGS_ID ? runSearch(tabSearchQuery, activeSection) : null),
+    [tabSearchQuery, activeSection]
+  );
 
   // ---- Schil: navigatie, grote titel, tabbalk ----
   const isSettings = activeSection === SETTINGS_ID;
@@ -7537,7 +7535,9 @@ function ZakkaartApp() {
       <span className="zk-grow">
         {r.cat && <span className="zk-result-cat">{r.cat}</span>}
         <span className="zk-result-text">{r.text}</span>
+        {r.sub && <span className="zk-result-sub">{r.sub}</span>}
       </span>
+      {r.num && <span className="zk-result-num">{r.num}</span>}
       <ChevronRight />
     </button>
   );
