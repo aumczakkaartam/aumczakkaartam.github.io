@@ -7515,7 +7515,7 @@ function ZakkaartApp() {
   const showBack = activeSection !== HOME && !isTabRoot;
   const goSection = id => { setCollapseTarget(null); setActiveSection(id); };
   const onScroll = e => {
-    const solid = e.currentTarget.scrollTop > 36;
+    const solid = e.currentTarget.scrollTop > 4;
     if (solid !== navSolidRef.current) { navSolidRef.current = solid; setNavSolid(solid); }
   };
   useEffect(() => { window.__zkGo = id => goSection(id === undefined ? HOME : id); }, []);
@@ -7632,7 +7632,7 @@ function ZakkaartApp() {
       })()}
 
       <div className="zk-scroll" ref={scrollRef} onScroll={onScroll}>
-        <div className={"zk-nav" + (navSolid ? " is-solid" : "")}>
+        <div className={"zk-nav" + (navSolid ? " is-solid" : "") + (showBack ? " is-inline" : " is-root")}>
           <div className="zk-nav-row">
             <div>
               {showBack && (
@@ -7642,7 +7642,7 @@ function ZakkaartApp() {
                 </button>
               )}
             </div>
-            <div className="zk-nav-title">{screenTitle}</div>
+            <div className="zk-nav-title" data-screen-title={showBack ? "" : undefined}>{screenTitle}</div>
             <div className="zk-nav-right">
               {activeSection === HOME && (
                 <button type="button" className="zk-nav-btn" aria-label="Instellingen" onClick={() => goSection(SETTINGS_ID)}>{Icons.gear}</button>
@@ -7652,8 +7652,10 @@ function ZakkaartApp() {
         </div>
 
         <div style={{ zoom: zoomMap[settings.fontSize] || 1 }}>
-          <div className="zk-head">
-            <h1 className="zk-large-title">{screenTitle}</h1>
+          {/* Hoofdschermen: grote titel op de hoogte van de (verder lege) navigatiebalk.
+              Schermen met een terugknop: de titel staat al in de balk, dus geen tweede titel eronder. */}
+          <div className="zk-head" style={showBack ? undefined : { marginTop: `calc(-42px / ${zoomMap[settings.fontSize] || 1})` }}>
+            {!showBack && <h1 className="zk-large-title" data-screen-title="">{screenTitle}</h1>}
             {activeSection === null && <div className="zk-subtitle">{APP_SUBTITLE} · {VERSIE}</div>}
             {activeSection === null && SearchField(searchQuery, setSearchQuery, "Zoek op naam, nummer, medicatie")}
             {activeSection && !isSettings && SearchField(tabSearchQuery, setTabSearchQuery, `Zoek in ${activeSectionData ? activeSectionData.label : "dit tabblad"}`)}
